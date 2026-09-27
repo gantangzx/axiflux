@@ -171,8 +171,8 @@ dev 特点：`allow-private-network=true`、`code-executor-sandbox=local`、自�
 
 ### 5.2 基础设施
 
-独立预发 PG / Redis，与生产、开发数据隔离（`application-test.yml` 默认指向
-`test-pg.internal` / `test-redis.internal`，Redis database=1）。
+独立预发 PG / Redis，与生产、开发数据隔离（`application-test.yml` 通过环境变量
+指向预发数据库主机，例如 `TEST_PG_HOST` / `TEST_REDIS_HOST`，Redis database=1）。
 
 ### 5.3 配置固定 webhook 端点
 
@@ -260,7 +260,7 @@ tianshu.tools.workspaces-enabled=true
 tianshu.tools.workspaces-root=/var/lib/tianshu/workspaces
 ```
 
-`saas` 模式下若漏开 `workspaces-enabled`，启动守卫（M2-4）会**立即 fail-fast**
+`saas` 模式下若漏开 `workspaces-enabled`，启动守卫会**立即 fail-fast**
 并给出修复指引，避免 file/git/exec 工具静默落回共享全局根目录造成跨租户越权；
 同时 `tenantWorkspaces` 健康组件会在根目录不可写时报 DOWN。
 
@@ -289,8 +289,6 @@ docker run -d --name tianshu \
 - 一轮真实对话冒烟；
 - 完成一笔真实订阅（可先内部小额）确认 webhook 收敛；
 - 监控配额、402/429、日志与告警。
-
-> 现状纪律：Stripe Live 收款在 test 环境全链路验收通过前，不要对外宣称“已在线收款”。
 
 ---
 

@@ -6,7 +6,7 @@
 > 配套：首次安装看 [`offline-install.md`](offline-install.md)；环境四档（local/dev/test/prod）
 > 看 [`environments.md`](environments.md)。
 >
-> 最后更新：2026-09-26（M2-3）
+> 最后更新：2026-09-26
 
 ---
 
@@ -62,8 +62,8 @@ Get-NetTCPConnection -LocalPort 8080 -State Listen
 java -version
 
 # ③ 停服后重新“干净”全量构建（不要只 package）
-#    Windows：
-set JAVA_HOME=D:\software\Java\jdk-25\jdk-25.0.2
+#    Windows：（JAVA_HOME 指向本机 JDK 25 安装目录）
+set JAVA_HOME=<JDK25 安装路径>
 mvn clean install -DskipTests
 
 # ④ 重新启动
@@ -261,44 +261,6 @@ psql -d tianshu -c 'DROP TABLE IF EXISTS memory_items;'
 
 > 参考实测：方舟 `doubao-embedding-vision-251215` 为 **2048 维**；
 > 换模型维度变了必须重建 `memory_items`。
-
----
-
-## 7. License 报错 / 到期被拦截
-
-**现象**：接口返回 **503**，响应体提示 license；或控制台“离线授权”页显示
-`MISSING / INVALID / EXPIRED`；登录正常但业务接口不可用。
-
-**一条定位命令**
-
-```bash
-# 用管理员 token 查当前 license 状态
-curl -s -H "Authorization: Bearer $T" \
-  http://127.0.0.1:8080/api/v1/admin/license
-```
-
-**常见原因（对照 6 态）**
-
-| 状态 | 含义与处理 |
-|---|---|
-| `MISSING` | 没安装 license，或缺公钥；按下方“申请/续签”操作 |
-| `INVALID` | 签名错误 / **部署 ID 不匹配** / 文件被改；需用本部署 ID 重新签发 |
-| `GRACE` | 已过期但仍在宽限期（默认 7 天），**可用**，尽快续签 |
-| `EXPIRED` | 越过宽限期，业务接口被拦截；续签后立即恢复 |
-| `VALID` | 正常 |
-| `DISABLED` | 未启用 license（`enabled=false`），不拦截 |
-
-**自助修复（控制台自助，无需停机）**
-
-1. 用 `license:admin` 账号登录，进入“离线授权”页，**复制部署 ID**；
-2. 把部署 ID（及客户名、版本/席位）发给天枢厂商，离线取回新 License Key；
-3. 点“应用 License”粘贴即可——**有效期内或宽限期内都能应用**。
-
-> 关键点：
-> - **登录页不受 License 拦截**（否则无法恢复）；被拦的是登录之后的业务接口。
-> - `INVALID` 多半是**部署指纹不一致**（如换机/克隆后 deploymentId 变了），需重新签发。
-> - 完整签发/续签命令与配置见 [`offline-install.md`](offline-install.md) §8.2。
-> - 交付前可用 `scripts/ops/license-enforce-selftest.sh` 一键验证三态。
 
 ---
 

@@ -13,7 +13,7 @@
 | 口令复杂度与更换周期 | 本地账号登录（`/api/v1/auth/login`）；初始口令随机生成且仅打印一次 | `install.sh` 生成 `initial-admin-password.txt`(600) | 🟡 复杂度策略需按客户策略配置/外接 IdP |
 | 登录失败处理与超时退出 | JWT 有过期（`expiresInSeconds`）；连续失败锁定需在 IdP/网关侧 | — | 🟡 建议由 IdP/网关兜底 |
 | 远程管理防窃听 | 全站 HTTPS（LB 终结）+ WS 支持 `?token=` 提升 | `ha-deployment.md` | 🟡 需客户证书 |
-| 双因子/单点登录 | 企业版：SAML 2.0 SP（Okta/Azure AD/Keycloak）；已有 OIDC 消费方模式 | `tianshu-ee-sso`、`/api/v1/sso/start` | 🟡 EE 待实机联调 |
+| 双因子/单点登录 | OIDC 授权码 + PKCE（SSO）；支持对接 Okta/Azure AD/Keycloak 等 IdP | `/api/v1/sso/start` | 🟡 需按 IdP 现场联调 |
 
 ## 2. 访问控制（8.1.4.2）
 
@@ -32,7 +32,7 @@
 | 审计覆盖 | 登录、审批决定、配置热更、订阅状态、配额发放、工具执行、组织治理变更 | `AuditService`、`audit` 表、`/api/v1/audits/*` | ✅ |
 | 审计记录要素 | 时间、主体（user/org）、动作、对象、结果 | `AuditController.tool-executions`/`alerts` | ✅ |
 | 审计日志保护 | 库内审计表 + 应用日志（按天滚动） | `logback-spring.xml` | 🟡 防篡改需 DB 侧权限/只读归档 |
-| 审计外送（SIEM/Syslog） | 企业版：Syslog / Webhook 外送 | `tianshu-ee-audit` | 🟡 EE 待实机联调 |
+| 审计外送（SIEM/Syslog） | 可通过日志归档或外部采集器对接 Syslog/SIEM | `logback-spring.xml` | 🟡 需按现场 SIEM 配置 |
 | 审计留存 ≥ 6 个月 | 依赖备份策略与库容量规划 | `backup-restore.md` | 🟡 需客户容量确认 |
 
 ## 4. 入侵防范（8.1.4.4）
@@ -65,7 +65,7 @@
 | 供应链与第三方 | `THIRD-PARTY-LICENSES.md` + 依赖锁定 | 🟡 |
 | 变更管理 | `upgrade.sh`（备份→灰度→探活→回滚）+ `logs/upgrade-history.txt` | ✅ |
 | 应急预案与演练 | `backup-restore.md` §6 演练要求 | ✅ |
-| 授权与 License | 企业版 LicenseService（state/expiresAt/enforcement）+ 控制台可视化 | ✅（enforcement=off 只展示；enforce 模式待实机验证） |
+| 授权与许可 | 开源版采用 MIT 许可，不内置授权强制 | ✅ |
 
 ---
 
@@ -81,4 +81,4 @@
 8. 渗透测试报告（可由第三方出具）
 
 > 测评前务必对齐：**测评对象范围**（仅应用 or 含 PG/Redis/OS）、**是否要求国密算法**（当前依赖 JSSE 与客户证书体系）、
-> **是否要求双因子**（建议接线 SAML/MFA IdP，属 EE 能力）。
+> **是否要求双因子**（可对接支持 MFA 的外部 IdP）。

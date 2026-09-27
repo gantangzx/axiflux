@@ -2,8 +2,7 @@
 
 > 创建：2026-09-23
 > 适用：`tianshu-registry` 独立服务的构建、配置、部署与运维。
-> 主应用手册见 [environments.md](environments.md)；背景路线图见
-> [skill-registry-roadmap.md](skill-registry-roadmap.md)（历史快照）。
+> 主应用手册见 [environments.md](environments.md)。
 
 ---
 
@@ -254,8 +253,8 @@ docker run -d --name tianshu-registry \
   -p 8090:8090 tianshu-registry:latest
 ```
 
-> 现状：注册中心目前以同仓模块 + 本机/单机运行为主，尚无官方镜像与线上部署（路线图 B6 未完成）。
-> 生产镜像、对象存储（S3/COS）适配属于后续工作，当前 blob 仅支持本地文件系统。
+> 现状：注册中心目前以同仓模块 + 本机/单机运行为主，当前 blob 仅支持本地文件系统；
+> 生产镜像、对象存储（S3/COS）适配属于后续工作。
 
 ---
 
@@ -277,7 +276,7 @@ docker run -d --name tianshu-registry \
 
 ## 9. 安全善后
 
-历史上注册中心的 `application.yml` 曾把数据库口令默认值 `qwe12356` 提交进 Git，本次已去除
+历史上注册中心的 `application.yml` 曾把一个弱数据库口令默认值提交进 Git，本次已去除
 默认值改为环境变量。建议：
 
 1. 更换该 PostgreSQL 口令；
