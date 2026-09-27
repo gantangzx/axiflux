@@ -1,6 +1,6 @@
 -- V6: long-term memory store backed by PGVector.
 --
--- Runtime owner: PGVectorLongTermMemory (openclaw-storage). The runtime also
+-- Runtime owner: PGVectorLongTermMemory (tianshu-storage). The runtime also
 -- runs equivalent DDL idempotently on startup as a fallback for non-Flyway
 -- deployments; keeping it here puts the schema under migration versioning.
 --
@@ -12,7 +12,7 @@
 -- surfaces a clear warning when the memory_items table is then missing.
 --
 -- NOTE: the embedding column is fixed at 1536 dimensions (OpenAI
--- text-embedding-ada-002; openclaw.vector.dimension defaults to 1536). DDL runs
+-- text-embedding-ada-002; tianshu.vector.dimension defaults to 1536). DDL runs
 -- via EXECUTE so the custom vector type is resolved at runtime, after the
 -- extension has been created inside the same block.
 

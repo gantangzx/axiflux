@@ -96,7 +96,7 @@
 对接动作：在控制台「模型」页或 `sysConfigService` 增加 provider（base-url + key + model），
 无需改代码（8 个 provider 已注册，路由默认 `ark-claude-haiku`，可切换）。
 
-> 内网模型时必须同时部署 **embedding 服务**（`EMBED_API_KEY` + `openclaw.vector.embed-url`），否则长期记忆不可用。
+> 内网模型时必须同时部署 **embedding 服务**（`EMBED_API_KEY` + `tianshu.vector.embed-url`），否则长期记忆不可用。
 
 ## 6. 现场适配检查清单
 

@@ -1,5 +1,5 @@
 -- Per-agent identity files: widen agent_definition with three optional persona
--- files modelled on the native OpenClaw workspace files, persisted per agent so
+-- files modelled on native agent workspace files, persisted per agent so
 -- they are editable from the console and shared across all instances (DB, not fs).
 --   soul                  SOUL.md  - persona, tone, opinions, boundaries
 --   user_profile          USER.md  - who the user is and how to address them

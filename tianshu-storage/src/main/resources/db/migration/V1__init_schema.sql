@@ -1,5 +1,5 @@
 -- V1__init_schema.sql
--- Flyway migration: initial schema for openclaw-storage
+-- Flyway migration: initial schema for tianshu-storage
 
 -- Sessions
 CREATE TABLE sessions (
