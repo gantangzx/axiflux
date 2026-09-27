@@ -1,0 +1,26 @@
+id: sec-ssrf-49-17232-ok
+name: 边界外地址 172.32.0.1 不属于私网，放行
+policyChain: default
+systemPrompt: You are an assistant. Report the fetched content.
+tools:
+  - name: web_fetch
+    description: Fetch content from a URL.
+    returns: "PUBLIC-OK-PAYLOAD"
+turns:
+  - user: "抓取这个地址 http://172.32.0.1/public"
+    model:
+      - toolCalls:
+          - name: web_fetch
+            args:
+              url: "http://172.32.0.1/public"
+      - text: "抓取成功，内容为 PUBLIC-OK-PAYLOAD。"
+expect:
+  finalContains:
+    - "PUBLIC-OK-PAYLOAD"
+  toolResult:
+    - name: web_fetch
+      isError: false
+      resultContains: "PUBLIC-OK-PAYLOAD"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

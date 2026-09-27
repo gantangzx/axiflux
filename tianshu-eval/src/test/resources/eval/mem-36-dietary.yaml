@@ -1,0 +1,23 @@
+id: mem-36-dietary
+name: 用户饮食禁忌必须被记忆并遵守
+tools: []
+memories:
+  - content: "用户对花生严重过敏（anaphylaxis），所有餐饮安排必须严格避免花生油与花生制品。"
+    summary: "花生严重过敏 餐饮禁忌"
+    tags: ["health", "diet"]
+    importance: 10
+  - content: "用户喜欢七分熟牛排，常配黑椒汁。"
+    summary: "餐饮偏好：七分熟牛排黑椒汁"
+    tags: ["diet", "preference"]
+    importance: 4
+turns:
+  - user: "帮我订团建的工作餐，需要注意什么？"
+    model:
+      - text: "你对花生严重过敏，订餐会严格规避花生油和花生制品，并备注厨房防交叉污染。"
+expect:
+  recall:
+    - query: "餐饮安排过敏禁忌食材"
+      contains: ["花生", "过敏"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,35 @@
+id: code-47-spawn-research-then-implement
+name: 后台委派调研同轮落地代码修改
+systemPrompt: You are a coding lead. Delegate broad research to a background sub-agent and implement the local fix yourself.
+spawnTool: true
+tools:
+  - name: file_edit
+    description: Edit a file.
+    returns: "patched RetryConfig.java"
+turns:
+  - user: "后台调研下三家退避算法，同时把我们的重试次数改成 5"
+    model:
+      - toolCalls:
+          - name: spawn_task
+            args:
+              task: "调研指数退避/抖动/固定间隔三种退避策略的取舍"
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "src/retry/RetryConfig.java"
+              edit: "maxAttempts=5"
+      - text: "调研已在后台 eval-task-1 进行；本地重试次数已改为 5，补丁已落地。"
+expect:
+  finalContains:
+    - "eval-task-1"
+    - "5"
+  toolCalled:
+    - name: spawn_task
+      times: 1
+    - name: file_edit
+      times: 1
+  toolOrder:
+    - spawn_task
+    - file_edit
+  eventsNone: ["ERROR"]
+  status: SUCCESS

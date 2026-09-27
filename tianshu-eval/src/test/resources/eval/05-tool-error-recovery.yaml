@@ -1,0 +1,28 @@
+id: 05-tool-error-recovery
+name: 工具执行失败后回合仍正常收尾
+systemPrompt: You are an assistant. Report tool failures honestly.
+tools:
+  - name: calculator
+    description: Evaluate a math expression.
+    error: "division by zero"
+turns:
+  - user: "帮我算 1 除以 0"
+    model:
+      - toolCalls:
+          - name: calculator
+            args:
+              expression: "1/0"
+      - text: "计算失败：除数不能为零。这个表达式在数学上没有定义。"
+expect:
+  finalContains:
+    - "除数不能为零"
+  toolCalled:
+    - name: calculator
+      times: 1
+  toolResult:
+    - name: calculator
+      isError: true
+      resultContains: "division by zero"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

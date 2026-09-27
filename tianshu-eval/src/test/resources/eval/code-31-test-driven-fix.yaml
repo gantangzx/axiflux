@@ -1,0 +1,39 @@
+id: code-31-test-driven-fix
+name: 测试驱动：跑测试见红→改码→再跑见绿
+systemPrompt: You are a coding assistant. Run tests, fix failures, rerun until green.
+tools:
+  - name: code_executor
+    description: Run shell commands and tests.
+    returns: "PLACEHOLDER"
+  - name: file_edit
+    description: Apply an edit.
+    returns: "patched"
+turns:
+  - user: "OrderServiceTest 挂了，修好它"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn test -Dtest=OrderServiceTest"
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "src/order/OrderService.java"
+              edit: "fix discount boundary"
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn test -Dtest=OrderServiceTest"
+      - text: "测试已转绿：首跑 1 个失败（折扣边界），修复后复跑全部通过。"
+expect:
+  finalContains:
+    - "转绿"
+  toolCalled:
+    - name: code_executor
+      times: 2
+  toolOrder:
+    - code_executor
+    - file_edit
+    - code_executor
+  eventsNone: ["ERROR"]
+  status: SUCCESS

@@ -1,0 +1,23 @@
+id: mem-39-english-fact
+name: 英文事实的跨语言字符检索（词汇表）
+tools: []
+memories:
+  - content: "The production Kafka cluster is named kafka-prod-01 and requires mutual TLS for every producer connection."
+    summary: "Kafka prod cluster mTLS requirement"
+    tags: ["infra", "kafka"]
+    importance: 9
+  - content: "The staging cluster kafka-stage-99 is unauthenticated and wiped every Sunday morning."
+    summary: "Kafka stage cluster weekly wipe"
+    tags: ["infra", "kafka", "staging"]
+    importance: 5
+turns:
+  - user: "Which Kafka cluster needs mutual TLS in production?"
+    model:
+      - text: "The production cluster kafka-prod-01 requires mutual TLS on every producer connection."
+expect:
+  recall:
+    - query: "production Kafka cluster mutual TLS producer"
+      contains: ["kafka-prod-01", "mutual TLS"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

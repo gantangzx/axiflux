@@ -1,0 +1,23 @@
+id: mem-43-code-style
+name: 代码风格偏好应在编码问题上被检索
+tools: []
+memories:
+  - content: "用户要求所有 Java 代码使用 4 空格缩进，禁止 Tab，文件必须保留末尾换行符。"
+    summary: "Java 代码格式：4空格 禁Tab 末换行"
+    tags: ["code-style", "java"]
+    importance: 9
+  - content: "用户养了一只橘猫，名叫年糕。"
+    summary: "宠物橘猫年糕"
+    tags: ["personal"]
+    importance: 3
+turns:
+  - user: "按我的习惯，新建的 Java 类缩进该怎么写？"
+    model:
+      - text: "按你的规范：Java 使用 4 个空格缩进、禁止 Tab，文件保留末尾换行符。"
+expect:
+  recall:
+    - query: "Java 代码缩进空格格式规范"
+      contains: ["4 空格", "Tab"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,90 @@
+# ============================================================================
+# Tianshu docker-compose
+#
+# 用法：
+#   docker compose up -d postgres redis      # 只起本地基础设施（profile=local/dev 本机联调）
+#   docker compose up -d                     # 连同应用一起起（默认 local profile）
+#   SPRING_PROFILES_ACTIVE=dev docker compose up -d tianshu
+#
+# 密钥不写在本文件：在仓库根放一个 gitignored 的 .env（参考 env/ 模板），
+# compose 会自动读取其中的变量并注入容器。
+# ============================================================================
+
+services:
+  # ─── Redis (session + ShedLock + 跨实例共享状态) ─────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─── PostgreSQL + pgvector ────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${PG_DB:-tianshu}
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-postgres}
+    ports:
+      - "${PG_PORT:5432}:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d ${PG_DB:-tianshu}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─── Tianshu Application ─────────────────────────────────────────
+  tianshu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tianshu:latest
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+
+      # Infrastructure (container DNS)
+      PG_URL: jdbc:postgresql://postgres:5432/${PG_DB:-tianshu}
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # Session / vector
+      SESSION_PROVIDER: ${SESSION_PROVIDER:-jpa}
+      VECTOR_PROVIDER: ${VECTOR_PROVIDER:-pgvector}
+
+      # LLM / embeddings
+      ARK_API_KEY: ${ARK_API_KEY:-}
+      EMBED_API_KEY: ${EMBED_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      # Auth / billing
+      AUTH_ENABLED: ${AUTH_ENABLED:-false}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      TIANSHU_PUBLIC_URL: ${TIANSHU_PUBLIC_URL:-http://localhost:8080}
+
+      JAVA_OPTS: ${JAVA_OPTS:-}
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  pg-data:

@@ -1,0 +1,25 @@
+id: mem-32-office-moved
+name: 办公地点搬迁后旧楼层信息失效
+tools: []
+memories:
+  - content: "团队原办公区在科技园 B 座 12 层，该工位区已退租。"
+    summary: "旧办公区 B座12层 已退租"
+    tags: ["office"]
+    importance: 5
+    expired: true
+  - content: "团队已整体搬迁到科技园 C 座 27 层，门禁走东侧访客通道。"
+    summary: "新办公区 C座27层 东门禁"
+    tags: ["office"]
+    importance: 8
+turns:
+  - user: "我明天去公司找你们，在哪个楼层？门禁怎么走？"
+    model:
+      - text: "团队现在在科技园 C 座 27 层，门禁走东侧访客通道；B 座 12 层已退租。"
+expect:
+  recall:
+    - query: "团队办公楼层门禁入口位置"
+      contains: ["C 座 27 层", "东侧访客通道"]
+      notContains: ["B 座 12 层"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

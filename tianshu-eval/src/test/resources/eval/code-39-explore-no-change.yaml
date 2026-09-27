@@ -1,0 +1,35 @@
+id: code-39-explore-no-change
+name: 只读调研任务不产生任何写操作
+systemPrompt: You are a coding assistant. For read-only investigation use search and read tools only; do not edit anything.
+tools:
+  - name: grep_search
+    description: Search code.
+    returns: "src/auth/JwtFilter.java:88"
+  - name: file_read
+    description: Read a file.
+    returns: "JWT expiry checked at line 88 via clock.instant()"
+  - name: file_edit
+    description: Edit a file.
+    returns: "MUST-NOT-HAPPEN"
+turns:
+  - user: "帮我看一下 JWT 过期是在哪里校验的，先别改"
+    model:
+      - toolCalls:
+          - name: grep_search
+            args:
+              pattern: "expiry|expire"
+      - toolCalls:
+          - name: file_read
+            args:
+              path: "src/auth/JwtFilter.java"
+      - text: "定位完成：JwtFilter.java 第 88 行用 clock.instant() 做过期校验。按要求未做任何修改。"
+expect:
+  finalContains:
+    - "88"
+  toolNotCalled:
+    - file_edit
+  toolCalled:
+    - name: file_read
+      times: 1
+  eventsNone: ["ERROR"]
+  status: SUCCESS

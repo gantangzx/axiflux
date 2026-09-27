@@ -1,0 +1,25 @@
+id: tool-chain-41-result-content-shapes-answer
+name: 最终回答必须引用工具返回的具体字段
+systemPrompt: You are an assistant. Ground the answer in tool output.
+tools:
+  - name: user_profile
+    description: Fetch a user profile.
+    returns: '{"id":91,"name":"陈墨","plan":"enterprise","seats":42}'
+turns:
+  - user: "陈墨的账号是什么套餐，多少席位？"
+    model:
+      - toolCalls:
+          - name: user_profile
+            args:
+              name: "陈墨"
+      - text: "陈墨（id 91）的账号是 enterprise 套餐，共 42 个席位。"
+expect:
+  finalContains:
+    - "enterprise"
+    - "42"
+  toolResult:
+    - name: user_profile
+      isError: false
+      resultContains: "enterprise"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

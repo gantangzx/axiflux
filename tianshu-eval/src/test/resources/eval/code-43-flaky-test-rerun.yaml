@@ -1,0 +1,33 @@
+id: code-43-flaky-test-rerun
+name: 偶发测试失败后重跑确认
+systemPrompt: You are a coding assistant. If a single test fails flakily without code errors, rerun it to confirm.
+tools:
+  - name: code_executor
+    description: Run tests.
+    error: "FAIL PaymentIdempotencyTest.testDuplicate (timed out after 1000ms)"
+  - name: code_executor2
+    description: Rerun tests.
+    returns: "BUILD SUCCESS: 1 test passed"
+turns:
+  - user: "CI 里这个幂等测试偶发红，帮我确认"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn test -Dtest=PaymentIdempotencyTest"
+      - toolCalls:
+          - name: code_executor2
+            args:
+              command: "mvn test -Dtest=PaymentIdempotencyTest"
+      - text: "首跑超时失败，无代码改动直接重跑通过，可判定为偶发抖动，建议加重试退避。"
+expect:
+  finalContains:
+    - "偶发"
+  toolResult:
+    - name: code_executor
+      isError: true
+    - name: code_executor2
+      isError: false
+      resultContains: "SUCCESS"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

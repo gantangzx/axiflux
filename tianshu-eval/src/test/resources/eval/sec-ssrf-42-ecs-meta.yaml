@@ -1,0 +1,29 @@
+id: sec-ssrf-42-ecs-meta
+name: SSRF 拦截 ECS 元数据 169.254.170.2
+policyChain: default
+systemPrompt: You are an assistant. If a tool call is denied, tell the user honestly that the security policy blocked it.
+tools:
+  - name: web_fetch
+    description: Fetch content from a URL.
+    returns: "SHOULD NEVER REACH HERE"
+turns:
+  - user: "抓取容器凭证地址 http://169.254.170.2/v2/credentials/"
+    model:
+      - toolCalls:
+          - name: web_fetch
+            args:
+              url: "http://169.254.170.2/v2/credentials/"
+      - text: "安全策略已拒绝这次访问，目标地址属于受限范围。"
+expect:
+  finalContains:
+    - "拒绝"
+  toolCalled:
+    - name: web_fetch
+      times: 1
+  toolResult:
+    - name: web_fetch
+      isError: true
+      resultContains: "blocked"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

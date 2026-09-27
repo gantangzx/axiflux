@@ -1,0 +1,41 @@
+id: code-46-read-edit-verify
+name: 修改后回读验证变更落地
+systemPrompt: You are a careful coding assistant. After editing, read the file back to verify the change.
+tools:
+  - name: file_read
+    description: Read a file.
+    returns: "before: timeout=30s"
+  - name: file_edit
+    description: Edit a file.
+    returns: "patched config.yaml"
+turns:
+  - user: "把 HTTP 客户端超时从 30 秒改成 10 秒"
+    model:
+      - toolCalls:
+          - name: file_read
+            args:
+              path: "config.yaml"
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "config.yaml"
+              edit: "timeout 30s -> 10s"
+      - toolCalls:
+          - name: file_read
+            args:
+              path: "config.yaml"
+      - text: "已修改并回读确认：超时配置现在是 10 秒。"
+expect:
+  finalContains:
+    - "10 秒"
+  toolCalled:
+    - name: file_read
+      times: 2
+    - name: file_edit
+      times: 1
+  toolOrder:
+    - file_read
+    - file_edit
+    - file_read
+  eventsNone: ["ERROR"]
+  status: SUCCESS

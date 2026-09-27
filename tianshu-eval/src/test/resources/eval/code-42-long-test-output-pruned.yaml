@@ -1,0 +1,25 @@
+id: code-42-long-test-output-pruned
+name: 超长测试日志进入上下文前被截断
+systemPrompt: You are a coding assistant. Summarize long logs concisely.
+tools:
+  - name: code_executor
+    description: Run tests with verbose logs.
+    repeatReturns: "[INFO] verbose module test log line with stack details. "
+    repeatTimes: 700
+turns:
+  - user: "跑全量测试并总结结果"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn verify"
+      - text: "全量测试日志很长，已根据截断后的关键部分完成总结：核心模块全部通过。"
+expect:
+  finalContains:
+    - "总结"
+  toolResult:
+    - name: code_executor
+      isError: false
+      resultContains: "truncated"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

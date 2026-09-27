@@ -1,0 +1,23 @@
+id: mem-42-distractor-threshold
+name: 高重要性但主题无关的记忆不应被注入
+tools: []
+memories:
+  - content: "用户反复强调的核心偏好：代码一律用 4 空格缩进，禁止 Tab，行宽 100。"
+    summary: "代码风格 4空格 禁Tab 行宽100"
+    tags: ["code-style"]
+    importance: 10
+  - content: "数据库连接池最大连接数定为 40，空闲超时 30 秒。"
+    summary: "连接池 max=40 idle=30s"
+    tags: ["database", "tuning"]
+    importance: 9
+turns:
+  - user: "帮我写封邮件约客户下周开会。"
+    model:
+      - text: "可以，我先给你一版会议邀约邮件草稿，不涉及代码规范或数据库配置。"
+expect:
+  recall:
+    - query: "撰写会议邀约邮件给客户"
+      notContains: ["Tab", "连接池"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

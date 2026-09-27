@@ -1,0 +1,154 @@
+# ============================================================================
+# 天枢 私有化生产部署 (docker compose)
+#
+# 目标：离线环境一键起 PostgreSQL(+pgvector) + Redis + 应用，全部数据落宿主卷。
+# 用法：
+#   docker compose -f docker-compose.prod.yml --env-file conf/tianshu.env up -d
+#
+# 与 docker-compose.yml（开发用）的差异：
+#   1) 不暴露数据库端口到公网（仅内部网络）
+#   2) 资源上限、日志轮转、时区、健康检查、重启策略显式声明
+#   3) 应用以非 root 用户运行，只读根文件系统 + 挂载数据卷
+#   4) 内置 pgvector 与备份卷
+# ============================================================================
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tianshu-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tianshu
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?PG_PASSWORD is required}
+      TZ: Asia/Shanghai
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./backup:/backup
+    command:
+      - postgres
+      - -c
+      - max_connections=300
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_senders=5
+      - -c
+      - log_min_duration_statement=2000
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d tianshu"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }
+
+  redis:
+    image: redis:7-alpine
+    container_name: tianshu-redis
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 2gb
+      - --maxmemory-policy
+      - noeviction
+      - --requirepass
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  tianshu:
+    image: ${TIANSHU_IMAGE:-tianshu:1.0.0}
+    container_name: tianshu-app
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: Asia/Shanghai
+      PG_URL: jdbc:postgresql://postgres:5432/tianshu
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      TIANSHU_PUBLIC_URL: ${TIANSHU_PUBLIC_URL:-http://localhost:8080}
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      SESSION_PROVIDER: ${SESSION_PROVIDER:-jpa}
+      VECTOR_PROVIDER: ${VECTOR_PROVIDER:-pgvector}
+      ARK_API_KEY: ${ARK_API_KEY:-}
+      EMBED_API_KEY: ${EMBED_API_KEY:-}
+      # 企业版（未购买时保持 false；EE 镜像内含 tianshu-ee-*.jar 时按需开启）
+      TIANSHU_EE_ENABLED: ${TIANSHU_EE_ENABLED:-false}
+      TIANSHU_EE_SAML_ENABLED: ${TIANSHU_EE_SAML_ENABLED:-false}
+      TIANSHU_EE_SCIM_ENABLED: ${TIANSHU_EE_SCIM_ENABLED:-false}
+      TIANSHU_EE_SCIM_TOKEN: ${TIANSHU_EE_SCIM_TOKEN:-}
+      TIANSHU_EE_AUDIT_ENABLED: ${TIANSHU_EE_AUDIT_ENABLED:-false}
+      TIANSHU_EE_AUDIT_SYSLOG_HOST: ${TIANSHU_EE_AUDIT_SYSLOG_HOST:-}
+      TIANSHU_EE_AUDIT_WEBHOOK_URL: ${TIANSHU_EE_AUDIT_WEBHOOK_URL:-}
+      JAVA_OPTS: ${JAVA_OPTS:--Xms1g -Xmx2g -XX:MaxRAMPercentage=75 -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai}
+    volumes:
+      - ./data:/data/tianshu
+      - ./logs:/var/log/tianshu
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=256m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health/liveness || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+    logging:
+      driver: json-file
+      options: { max-size: "50m", max-file: "5" }
+
+volumes:
+  pg-data:
+    name: tianshu-pg-data
+  redis-data:
+    name: tianshu-redis-data

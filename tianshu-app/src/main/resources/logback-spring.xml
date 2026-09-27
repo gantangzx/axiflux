@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tianshu logging configuration.
+  - Console: concise pattern, INFO by default
+  - File:    logs/tianshu.log, daily rolling, 30-day retention, 3GB cap
+  - Profile "prod": file-only
+  Override levels via LOGGING_LEVEL_COM_TIANSHU etc.
+  NOTE: patterns use only logback-native converters (%ex) so they work even
+  when an extra SLF4J provider (reload4j) is on the classpath; Spring Boot's
+  %clr/%wEx extensions are intentionally avoided.
+-->
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <property name="LOG_PATH" value="${LOG_PATH:-logs}"/>
+    <property name="APP_NAME" value="tianshu"/>
+    <property name="PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [${APP_NAME},%X{traceId:-},%X{spanId:-}] [%t] %-40.40logger{39} : %m%n%ex"/>
+
+    <!-- ======================= Console ======================= -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ======================= Rolling file ======================= -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}.log</file>
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${APP_NAME}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Agent/request/tool traffic -> separate operational log -->
+    <appender name="TRAFFIC" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}-traffic.log</file>
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${APP_NAME}-traffic-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ======================= Noisy libraries ======================= -->
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.flywaydb" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="io.lettuce.core" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="reactor" level="WARN"/>
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springdoc" level="WARN"/>
+
+    <!-- Application code -->
+    <logger name="com.gantang.tianshu" level="INFO"/>
+
+    <!-- HTTP request traffic also mirrored to the traffic log -->
+    <logger name="com.gantang.tianshu.spring.web.RequestLoggingFilter" level="INFO" additivity="true">
+        <appender-ref ref="TRAFFIC"/>
+    </logger>
+
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+</configuration>

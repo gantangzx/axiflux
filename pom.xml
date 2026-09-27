@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.gantang.tianshu</groupId>
+    <artifactId>tianshu-agent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Tianshu Agent</name>
+    <description>Tianshu Agent Runtime Framework in Java</description>
+
+    <!--
+      Default reactor = open-source only. This keeps "the framework builds and
+      ships without any closed-source code" continuously verifiable:
+        mvn clean install              -> open-source distribution
+        mvn -Pee clean install         -> commercial distribution
+      Profile modules below are appended (Maven aggregates profile <modules>),
+      so closed-source artifacts never participate in the default build.
+    -->
+    <modules>
+        <module>tianshu-core</module>
+        <module>tianshu-eval</module>
+        <module>tianshu-storage</module>
+        <module>tianshu-spring</module>
+        <module>tianshu-registry</module>
+        <module>tianshu-app</module>
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>ee</id>
+            <modules>
+                <module>tianshu-ee-core</module>
+                <module>tianshu-ee-sso</module>
+                <module>tianshu-ee-audit</module>
+                <module>tianshu-commercial</module>
+            </modules>
+        </profile>
+    </profiles>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Spring Boot 4.x -->
+        <spring-boot.version>4.1.1</spring-boot.version>
+
+        <!-- LangChain4j 1.x -->
+        <langchain4j.version>1.0.0</langchain4j.version>
+
+        <!-- Vector Stores -->
+        <qdrant.version>1.10.0</qdrant.version>
+
+        <!-- Others -->
+        <shedlock.version>5.10.0</shedlock.version>
+        <aviator.version>5.3.3</aviator.version>
+        <snakeyaml.version>2.2</snakeyaml.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- LangChain4j BOM -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Qdrant -->
+            <dependency>
+                <groupId>io.qdrant</groupId>
+                <artifactId>client</artifactId>
+                <version>${qdrant.version}</version>
+            </dependency>
+
+            <!-- ShedLock -->
+            <dependency>
+                <groupId>net.javacrumbs.shedlock</groupId>
+                <artifactId>shedlock-bom</artifactId>
+                <version>${shedlock.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- AviatorScript -->
+            <dependency>
+                <groupId>com.googlecode.aviator</groupId>
+                <artifactId>aviator</artifactId>
+                <version>${aviator.version}</version>
+            </dependency>
+
+            <!-- TestContainers -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.12.1</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.flywaydb</groupId>
+                    <artifactId>flyway-maven-plugin</artifactId>
+                    <version>10.4.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

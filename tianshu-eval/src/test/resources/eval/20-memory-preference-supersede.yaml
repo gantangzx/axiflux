@@ -1,0 +1,32 @@
+id: 20-memory-preference-supersede
+name: 事实更新——用户改偏好后旧记忆不再被召回（时序抽象）
+memories:
+  - content: "用户偏好编辑器深色主题（已被新偏好取代的旧事实）"
+    summary: "旧偏好：深色主题"
+    tags: ["preference", "theme"]
+    importance: 9
+    expired: true
+  - content: "用户偏好编辑器浅色主题，代码字体固定使用 JetBrains Mono"
+    summary: "当前偏好：浅色主题 + JetBrains Mono"
+    tags: ["preference", "theme"]
+    importance: 9
+tools: []
+turns:
+  - user: "我现在的编辑器主题和字体偏好是什么？"
+    model:
+      - text: "根据你的长期偏好，你使用浅色主题，代码字体是 JetBrains Mono。"
+expect:
+  finalContains:
+    - "浅色"
+  finalNotContains:
+    - "深色"
+  recall:
+    - query: "编辑器主题颜色和字体偏好"
+      contains: ["浅色", "JetBrains Mono"]
+      notContains: ["深色"]
+  storedContains:
+    # 旧事实行保留（审计链），只是检索不可见
+    - "深色"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

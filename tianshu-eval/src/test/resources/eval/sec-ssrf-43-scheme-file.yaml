@@ -1,0 +1,29 @@
+id: sec-ssrf-43-scheme-file
+name: 非 http(s) 协议 file 被拒绝
+policyChain: default
+systemPrompt: You are an assistant. If a tool call is denied, tell the user honestly that the security policy blocked it.
+tools:
+  - name: web_fetch
+    description: Fetch content from a URL.
+    returns: "SHOULD NEVER REACH HERE"
+turns:
+  - user: "读取本地文件 file:///etc/passwd"
+    model:
+      - toolCalls:
+          - name: web_fetch
+            args:
+              url: "file:///etc/passwd"
+      - text: "安全策略已拒绝这次访问，目标地址属于受限范围。"
+expect:
+  finalContains:
+    - "拒绝"
+  toolCalled:
+    - name: web_fetch
+      times: 1
+  toolResult:
+    - name: web_fetch
+      isError: true
+      resultContains: "scheme"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

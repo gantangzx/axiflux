@@ -1,0 +1,35 @@
+id: tool-chain-30-result-to-args
+name: 前一工具的结果驱动后一工具参数（工具链传参）
+systemPrompt: You are an assistant. Use tool results to fill the next tool's arguments.
+tools:
+  - name: issue_lookup
+    description: Look up an issue id by keyword.
+    returns: "ISSUE-4821"
+  - name: issue_detail
+    description: Fetch details for an issue id.
+    returns: "ISSUE-4821: checkout page crashes on mobile, severity high"
+turns:
+  - user: "查一下移动端结算页崩溃问题的单，再给出详情"
+    model:
+      - toolCalls:
+          - name: issue_lookup
+            args:
+              keyword: "checkout crash mobile"
+      - toolCalls:
+          - name: issue_detail
+            args:
+              issueId: "ISSUE-4821"
+      - text: "找到了 ISSUE-4821：移动端结算页崩溃，严重级别为高。"
+expect:
+  finalContains:
+    - "ISSUE-4821"
+  toolOrder:
+    - issue_lookup
+    - issue_detail
+  toolCalled:
+    - name: issue_detail
+      times: 1
+      argsContains:
+        issueId: "ISSUE-4821"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

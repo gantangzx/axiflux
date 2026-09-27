@@ -1,0 +1,52 @@
+﻿target/
+*/target/
+# Scratch output dir used when compiling without Maven
+.build/
+.idea/
+*.iml
+*.class
+# Local dev secret overrides (never commit; application-local.yml itself is safe)
+*.local-secret.yml
+
+# Runtime logs
+logs/
+*.log
+*.log.err
+*.err
+
+# Local launch env (contains API keys)
+setenv.bat
+
+# Per-environment secret files (templates *.example are committed)
+env/env.local.bat
+env/env.dev.bat
+env/env.test.bat
+env/env.prod.bat
+env/env.registry.bat
+env/env.local.sh
+env/env.dev.sh
+env/env.test.sh
+env/env.prod.sh
+env/env.registry.sh
+
+# runtime-installed skills (keep bundled sample)
+skills/*
+!skills/reminder/
+
+# Runtime-generated data dirs (license test keys, local blobs)
+data/
+
+
+# tianshu-registry runtime artifacts (logs/ above already covers registry.log)
+setenv-registry.bat
+registry-blobs/
+registry-keys/
+# legacy local-multi-instance experiment artifacts
+registry-blobs2/
+registry-keys2/
+registry2.log
+
+tmp/
+
+# Bundled third-party binaries downloaded at runtime (e.g. cloudflared.exe)
+tools/

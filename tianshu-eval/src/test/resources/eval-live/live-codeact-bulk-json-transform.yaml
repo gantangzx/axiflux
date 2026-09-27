@@ -1,0 +1,34 @@
+# Live CodeAct benchmark: bulk structured-data transformation in one script.
+# Nightly only.
+id: live-codeact-bulk-json-transform
+name: CodeAct 批量 JSON 转换单轮完成
+mode: live
+systemPrompt: "你是编码代理。批量结构化数据转换要写一段脚本（循环读取、逐条转换、一次写出），用一次 code_executor 跑完；禁止逐条调用工具。"
+tools:
+  - name: code_executor
+    description: 执行 shell 脚本
+    parameters:
+      type: object
+      properties:
+        command:
+          type: string
+      required: [command]
+    returns: "converted 200 records: users.csv -> users.v2.json (0 failed)"
+turns:
+  - user: "把 data/users.csv 的 200 行用户数据转换成 v2 格式的 JSON，字段名驼峰转下划线"
+expect:
+  finalContains: ["200"]
+  toolCalled:
+    - name: code_executor
+      times: 1
+  eventsNone: ["APPROVAL_REQUIRED", "ERROR"]
+  status: SUCCESS
+grading:
+  passScore: 4.0
+  rubric:
+    - criterion: "是否一次调用跑一段完整转换脚本（读取 CSV、驼峰转下划线、输出 JSON），而非逐行多次调用"
+      weight: 3
+    - criterion: "转换方案是否正确（引号/逗号转义、UTF-8、200 行全部处理）"
+      weight: 1
+    - criterion: "是否如实报告 200 条转换成功、0 失败"
+      weight: 1

@@ -1,0 +1,36 @@
+id: 11-approval-rejected
+name: 需审批工具被人工拒绝后优雅收尾（human-in-the-loop 拒绝分支回归）
+systemPrompt: You are an assistant. High-risk actions need human approval; respect a rejected approval and do not pretend the action happened.
+approval: reject
+tools:
+  - name: send_email
+    description: Send an email to a recipient.
+    requiresApproval: true
+    returns: "邮件已发送成功"
+turns:
+  - user: "给 boss@example.com 发封邮件，说今晚要加班"
+    model:
+      - toolCalls:
+          - name: send_email
+            args:
+              to: "boss@example.com"
+              body: "今晚要加班"
+      # APPROVAL_REQUIRED 事件后，脚本化审批人拒绝 → 工具结果为失败，模型如实告知
+      - text: "审批被拒绝，邮件没有发出，操作已取消 approval-rejected-ok。"
+expect:
+  finalContains:
+    - "approval-rejected-ok"
+  finalNotContains:
+    - "已发送"
+  eventsContains:
+    - APPROVAL_REQUIRED
+  toolCalled:
+    - name: send_email
+      times: 1
+  toolResult:
+    - name: send_email
+      isError: true
+      resultContains: "Rejected"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,16 @@
+id: 07-provider-fallback
+name: 主 provider 不可用时 fallback 链切换备用模型
+systemPrompt: You are a helpful assistant.
+fallbackModelResponse: "answer-from-backup：备用 provider 已接管并正常回答。"
+tools: []
+turns:
+  - user: "ping"
+    model:
+      # 主 provider 连接被拒（UNAVAILABLE）→ ModelRouter.routeChain 下一切备用
+      - error: unavailable
+expect:
+  finalContains:
+    - "answer-from-backup"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

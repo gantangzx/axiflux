@@ -1,0 +1,26 @@
+id: mem-40-travel-itinerary
+name: 未来出行行程在有效期内可检索
+tools: []
+memories:
+  - content: "用户出差行程：10 月 18 日北京飞三亚，航班 HU7382，酒店订在海棠湾天房洲际。"
+    summary: "10月18日出差 北京三亚 HU7382 海棠湾"
+    tags: ["travel"]
+    importance: 8
+    validUntilHours: 2000
+  - content: "上个月去成都的差旅已结束，报销单号 TRIP-CD-OLD-009。"
+    summary: "成都旧行程已结束"
+    tags: ["travel", "archive"]
+    importance: 3
+    expired: true
+turns:
+  - user: "我下个月去三亚坐哪个航班？住哪家酒店？"
+    model:
+      - text: "10 月 18 日北京飞三亚，航班 HU7382，入住海棠湾天房洲际。"
+expect:
+  recall:
+    - query: "三亚出差航班号酒店行程"
+      contains: ["HU7382", "海棠湾"]
+      notContains: ["TRIP-CD-OLD-009"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,40 @@
+id: code-30-grep-read-edit
+name: 编码循环：先检索再读取后修改
+systemPrompt: You are a coding assistant. Always grep, then read, then edit. Never edit a file you have not read.
+tools:
+  - name: grep_search
+    description: Search code by regex.
+    returns: "src/order/PriceCalculator.java:42: total += fee;"
+  - name: file_read
+    description: Read a file.
+    returns: "line41: subtotal = items.sum();\nline42: total += fee; // BUG: fee added twice"
+  - name: file_edit
+    description: Apply an edit to a file.
+    returns: "patched src/order/PriceCalculator.java"
+turns:
+  - user: "下单总价好像把服务费算了两次，修一下"
+    model:
+      - toolCalls:
+          - name: grep_search
+            args:
+              pattern: "total.*fee"
+              path: "src/order"
+      - toolCalls:
+          - name: file_read
+            args:
+              path: "src/order/PriceCalculator.java"
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "src/order/PriceCalculator.java"
+              edit: "remove duplicate fee accumulation"
+      - text: "已修复：定位到 PriceCalculator.java 第 42 行服务费重复累加，补丁已应用。"
+expect:
+  finalContains:
+    - "PriceCalculator.java"
+  toolOrder:
+    - grep_search
+    - file_read
+    - file_edit
+  eventsNone: ["ERROR"]
+  status: SUCCESS

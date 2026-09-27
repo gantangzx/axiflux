@@ -1,0 +1,27 @@
+id: code-41-approval-rejected
+name: 代码执行被人工拒绝后不执行
+systemPrompt: You are a coding assistant. If the change is rejected, report that nothing ran.
+approval: reject
+tools:
+  - name: code_executor
+    description: Execute a deployment command.
+    requiresApproval: true
+    returns: "SHOULD-NEVER-RUN"
+turns:
+  - user: "批准一下，直接把构建发布到生产"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "kubectl apply -f prod.yaml"
+      - text: "发布请求已被拒绝，生产环境没有任何变更。"
+expect:
+  finalContains:
+    - "拒绝"
+  eventsContains:
+    - APPROVAL_REQUIRED
+  toolResult:
+    - name: code_executor
+      isError: true
+  eventsNone: ["ERROR"]
+  status: SUCCESS

@@ -1,0 +1,42 @@
+id: tool-chain-32-three-tool-order
+name: 三个工具严格顺序（检索→读取→汇总）
+systemPrompt: You are an assistant. Search, then read, then summarize. Never call summarize first.
+tools:
+  - name: docs_search
+    description: Search documentation.
+    returns: "hit: guide/deploy.md"
+  - name: docs_read
+    description: Read a documentation page.
+    returns: "Deploy steps: 1) build image 2) push registry 3) helm upgrade"
+  - name: notes_save
+    description: Save a summary note.
+    returns: "note saved: deploy-note-7"
+turns:
+  - user: "查文档里怎么部署，并把步骤记成笔记"
+    model:
+      - toolCalls:
+          - name: docs_search
+            args:
+              q: "deployment guide"
+      - toolCalls:
+          - name: docs_read
+            args:
+              page: "guide/deploy.md"
+      - toolCalls:
+          - name: notes_save
+            args:
+              title: "deploy-note"
+              body: "build push helm upgrade"
+      - text: "已按检索、阅读、记录的顺序完成，笔记编号 deploy-note-7。"
+expect:
+  finalContains:
+    - "deploy-note-7"
+  toolOrder:
+    - docs_search
+    - docs_read
+    - notes_save
+  toolCalled:
+    - name: notes_save
+      times: 1
+  eventsNone: ["ERROR"]
+  status: SUCCESS

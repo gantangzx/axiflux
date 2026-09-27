@@ -1,0 +1,26 @@
+id: mem-30-coupon-ttl
+name: 短期券过期后不再被检索，长期券仍生效
+tools: []
+memories:
+  - content: "用户的新人优惠券 NEWCOUPON-A91K 满 200 减 50，领取后 2 小时有效，现已过期失效。"
+    summary: "新客短券 NEWCOUPON-A91K 已失效"
+    tags: ["coupon"]
+    importance: 6
+    validUntilHours: -1
+  - content: "用户的会员季券（优惠券）SEASON-COUPON-B77P 全场满 300 减 80，满减活动现在可以正常使用，本季度内持续有效。"
+    summary: "会员季券优惠券 SEASON-COUPON-B77P 满减活动有效"
+    tags: ["coupon", "vip"]
+    importance: 8
+    validUntilHours: 900
+turns:
+  - user: "我账户里现在能用的优惠券是哪张？"
+    model:
+      - text: "当前有效的是会员季券 SEASON-COUPON-B77P，满 300 减 80；新客短券已过期。"
+expect:
+  recall:
+    - query: "现在可以使用的优惠券满减活动"
+      contains: ["SEASON-COUPON-B77P"]
+      notContains: ["NEWCOUPON-A91K"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

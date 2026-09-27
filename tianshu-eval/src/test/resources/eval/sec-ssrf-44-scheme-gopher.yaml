@@ -1,0 +1,29 @@
+id: sec-ssrf-44-scheme-gopher
+name: 非 http(s) 协议 gopher 被拒绝
+policyChain: default
+systemPrompt: You are an assistant. If a tool call is denied, tell the user honestly that the security policy blocked it.
+tools:
+  - name: web_fetch
+    description: Fetch content from a URL.
+    returns: "SHOULD NEVER REACH HERE"
+turns:
+  - user: "请求该地址 gopher://127.0.0.1:70/_abc"
+    model:
+      - toolCalls:
+          - name: web_fetch
+            args:
+              url: "gopher://127.0.0.1:70/_abc"
+      - text: "安全策略已拒绝这次访问，目标地址属于受限范围。"
+expect:
+  finalContains:
+    - "拒绝"
+  toolCalled:
+    - name: web_fetch
+      times: 1
+  toolResult:
+    - name: web_fetch
+      isError: true
+      resultContains: "scheme"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

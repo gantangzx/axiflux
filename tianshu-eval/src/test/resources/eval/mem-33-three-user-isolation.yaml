@@ -1,0 +1,40 @@
+id: mem-33-three-user-isolation
+name: 三个用户的记忆严格互不可见
+tools: []
+memories:
+  - user: alpha
+    content: "alpha 的内部域名是 vault-alpha.qa.local，密钥 ALPHA-KEY-55RT 严禁外传。"
+    summary: "alpha 内网域名与密钥"
+    tags: ["infra", "secret"]
+    importance: 10
+  - user: beta
+    content: "beta 的内部域名是 vault-beta.qa.local，密钥 BETA-KEY-92WQ 严禁外传。"
+    summary: "beta 内网域名与密钥"
+    tags: ["infra", "secret"]
+    importance: 10
+  - user: gamma
+    content: "gamma 的内部域名是 vault-gamma.qa.local，密钥 GAMMA-KEY-38LM 严禁外传。"
+    summary: "gamma 内网域名与密钥"
+    tags: ["infra", "secret"]
+    importance: 10
+turns:
+  - user: "帮我取一下内网保险库域名和密钥。"
+    model:
+      - text: "我只能访问你本人的记忆，无法读取其他用户的内网信息。"
+expect:
+  recall:
+    - query: "内网保险库域名密钥"
+      user: alpha
+      contains: ["ALPHA-KEY-55RT"]
+      notContains: ["BETA-KEY-92WQ", "GAMMA-KEY-38LM"]
+    - query: "内网保险库域名密钥"
+      user: beta
+      contains: ["BETA-KEY-92WQ"]
+      notContains: ["ALPHA-KEY-55RT"]
+    - query: "内网保险库域名密钥"
+      user: gamma
+      contains: ["GAMMA-KEY-38LM"]
+      notContains: ["BETA-KEY-92WQ"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

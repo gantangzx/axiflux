@@ -1,0 +1,9 @@
+**/target/
+**/.idea/
+**/*.iml
+.git/
+.gitignore
+*.md
+.dockerignore
+Dockerfile
+tianshu-examples/src/main/resources/application-local.yml

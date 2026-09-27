@@ -1,0 +1,30 @@
+id: code-33-dry-run-first
+name: 批量删除先 dry-run 再真执行
+systemPrompt: You are a cautious coding agent. For destructive batch commands, run with --dry-run first, show the plan, then run for real.
+tools:
+  - name: code_executor
+    description: Execute a shell script.
+    returns: "ok"
+turns:
+  - user: "清理日志目录里 30 天前的文件"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "find /var/log -type f -mtime +30 -delete --dry-run"
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "find /var/log -type f -mtime +30 -delete"
+      - text: "已先试运行列出待删清单，确认后正式执行删除。"
+expect:
+  finalContains:
+    - "试运行"
+  toolCalled:
+    - name: code_executor
+      times: 2
+  toolResult:
+    - name: code_executor
+      isError: false
+  eventsNone: ["ERROR"]
+  status: SUCCESS

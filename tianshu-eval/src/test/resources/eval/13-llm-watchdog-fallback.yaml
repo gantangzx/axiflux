@@ -1,0 +1,18 @@
+id: 13-llm-watchdog-fallback
+name: 模型调用卡死被看门狗放弃后备用 provider 接管（LLM 看门狗回归）
+systemPrompt: You are a helpful assistant.
+# 看门狗默认 120s；场景缩到 2s，脚本主模型 hang 住后被放弃，fallback 链接管
+llmCallTimeoutSeconds: 2
+fallbackModelResponse: "watchdog-backup-ok：主模型超时无响应，备用 provider 已接管并回答。"
+tools: []
+turns:
+  - user: "ping"
+    model:
+      # 主 provider 彻底卡死（不报错、不返回）→ watchdog TimeoutException(UNAVAILABLE) → 备用
+      - error: hang
+expect:
+  finalContains:
+    - "watchdog-backup-ok"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

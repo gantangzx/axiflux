@@ -1,0 +1,27 @@
+id: tool-chain-40-late-tool-after-clarification
+name: 信息不足先澄清，第二轮才调用工具
+systemPrompt: You are an assistant. Ask which environment before querying deployment status.
+tools:
+  - name: deploy_status
+    description: Get deployment status for an environment.
+    returns: "env=production rollout=healthy version=2.4.1"
+turns:
+  - user: "部署状态怎么样？"
+    model:
+      - text: "请问你要查哪个环境的部署状态：生产还是预发？"
+  - user: "生产环境"
+    model:
+      - toolCalls:
+          - name: deploy_status
+            args:
+              env: "production"
+      - text: "生产环境部署健康，当前版本 2.4.1。"
+expect:
+  finalContains:
+    - "2.4.1"
+  toolCalled:
+    - name: deploy_status
+      times: 1
+      fromTurn: 2
+  eventsNone: ["ERROR"]
+  status: SUCCESS

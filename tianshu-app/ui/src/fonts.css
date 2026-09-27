@@ -1,0 +1,68 @@
+/* Self-hosted Geist (latin + latin-ext subsets, woff2 only).
+   CJK characters fall through to PingFang SC / Microsoft YaHei in the
+   font stacks defined in index.css / theme.ts. */
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../node_modules/@fontsource/geist/files/geist-latin-ext-400-normal.woff2') format('woff2'),
+       url('../node_modules/@fontsource/geist/files/geist-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0100-024F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('../node_modules/@fontsource/geist/files/geist-latin-ext-500-normal.woff2') format('woff2'),
+       url('../node_modules/@fontsource/geist/files/geist-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0100-024F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('../node_modules/@fontsource/geist/files/geist-latin-ext-600-normal.woff2') format('woff2'),
+       url('../node_modules/@fontsource/geist/files/geist-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0100-024F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F;
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('../node_modules/@fontsource/geist/files/geist-latin-ext-700-normal.woff2') format('woff2'),
+       url('../node_modules/@fontsource/geist/files/geist-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0100-024F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../node_modules/@fontsource/geist-mono/files/geist-mono-latin-ext-400-normal.woff2') format('woff2'),
+       url('../node_modules/@fontsource/geist-mono/files/geist-mono-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0100-024F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('../node_modules/@fontsource/geist-mono/files/geist-mono-latin-ext-500-normal.woff2') format('woff2'),
+       url('../node_modules/@fontsource/geist-mono/files/geist-mono-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0100-024F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('../node_modules/@fontsource/geist-mono/files/geist-mono-latin-ext-600-normal.woff2') format('woff2'),
+       url('../node_modules/@fontsource/geist-mono/files/geist-mono-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0100-024F, U+0370-03FF, U+2000-206F, U+2070-209F, U+20A0-20BF, U+2100-214F;
+}

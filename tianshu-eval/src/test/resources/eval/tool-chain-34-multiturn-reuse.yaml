@@ -1,0 +1,33 @@
+id: tool-chain-34-multiturn-reuse
+name: 多轮会话重复使用同一工具且参数独立
+systemPrompt: You are an assistant. Look up each symbol when asked.
+tools:
+  - name: ticker_quote
+    description: Get a stock quote by ticker.
+    returns: "PRICE-PLACEHOLDER"
+turns:
+  - user: "AAPL 现在什么价？"
+    model:
+      - toolCalls:
+          - name: ticker_quote
+            args:
+              ticker: "AAPL"
+      - text: "AAPL 的报价已查询完成。"
+  - user: "那 MSFT 呢？"
+    model:
+      - toolCalls:
+          - name: ticker_quote
+            args:
+              ticker: "MSFT"
+      - text: "MSFT 的报价也已查询完成。"
+expect:
+  finalContains:
+    - "MSFT"
+  toolCalled:
+    - name: ticker_quote
+      times: 2
+  toolResult:
+    - name: ticker_quote
+      isError: false
+  eventsNone: ["ERROR"]
+  status: SUCCESS

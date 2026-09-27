@@ -1,0 +1,36 @@
+id: 10-approval-granted
+name: 需审批工具经人工批准后执行（human-in-the-loop 批准分支回归）
+systemPrompt: You are an assistant. High-risk actions need human approval; report the outcome honestly.
+approval: approve
+tools:
+  - name: send_email
+    description: Send an email to a recipient.
+    requiresApproval: true
+    returns: "邮件已发送成功"
+turns:
+  - user: "给 boss@example.com 发封邮件，说今晚要加班"
+    model:
+      - toolCalls:
+          - name: send_email
+            args:
+              to: "boss@example.com"
+              body: "今晚要加班"
+      # APPROVAL_REQUIRED 事件后，脚本化审批人批准 → 工具真正执行 → 结果回灌
+      - text: "人工审批已通过，邮件已发出 approval-granted-ok。"
+expect:
+  finalContains:
+    - "approval-granted-ok"
+  eventsContains:
+    - APPROVAL_REQUIRED
+  toolCalled:
+    - name: send_email
+      times: 1
+      argsContains:
+        to: "boss@example.com"
+  toolResult:
+    - name: send_email
+      isError: false
+      resultContains: "邮件已发送"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

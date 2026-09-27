@@ -1,0 +1,40 @@
+id: tool-chain-31-retry-corrected-args
+name: 首次参数错误后修正参数重试成功
+systemPrompt: You are an assistant. When a tool reports a bad argument, retry with corrected arguments.
+tools:
+  - name: weather
+    description: Get weather for a city.
+    error: "unknown city: 旧金山"
+  - name: weather2
+    description: Get weather for a city (fallback data source).
+    returns: "San Francisco 18C cloudy"
+turns:
+  - user: "旧金山天气如何"
+    model:
+      - toolCalls:
+          - name: weather
+            args:
+              city: "旧金山"
+      - toolCalls:
+          - name: weather2
+            args:
+              city: "San Francisco"
+      - text: "中文城市名查询失败，改用英文名重试成功：旧金山今天 18C，多云。"
+expect:
+  finalContains:
+    - "18C"
+  toolCalled:
+    - name: weather
+      times: 1
+    - name: weather2
+      times: 1
+      argsContains:
+        city: "San Francisco"
+  toolResult:
+    - name: weather
+      isError: true
+      resultContains: "unknown city"
+    - name: weather2
+      isError: false
+  eventsNone: ["ERROR"]
+  status: SUCCESS

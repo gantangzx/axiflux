@@ -1,0 +1,37 @@
+id: code-38-create-then-run
+name: 新建脚本文件并执行
+systemPrompt: You are a coding assistant. Write the script file first, then execute it.
+tools:
+  - name: file_write
+    description: Create a file.
+    returns: "created scripts/health.sh (120 bytes)"
+  - name: code_executor
+    description: Run a script.
+    returns: "OK db=reachable redis=reachable mq=reachable"
+turns:
+  - user: "写个依赖健康检查脚本并跑一次"
+    model:
+      - toolCalls:
+          - name: file_write
+            args:
+              path: "scripts/health.sh"
+              content: "#!/bin/sh\ncurl -sf db:6379 ..."
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "sh scripts/health.sh"
+      - text: "脚本已创建并执行：db、redis、mq 全部可达。"
+expect:
+  finalContains:
+    - "可达"
+  toolOrder:
+    - file_write
+    - code_executor
+  toolResult:
+    - name: file_write
+      isError: false
+    - name: code_executor
+      isError: false
+      resultContains: "OK"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

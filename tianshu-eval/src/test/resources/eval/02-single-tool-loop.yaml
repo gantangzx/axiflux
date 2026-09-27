@@ -1,0 +1,30 @@
+id: 02-single-tool-loop
+name: 单工具调用循环——先调工具再给最终文本
+systemPrompt: Use tools when needed.
+tools:
+  - name: echo
+    description: Echoes the input text back.
+    returns: "echo: hello"
+turns:
+  - user: "Please echo the word hello"
+    model:
+      - toolCalls:
+          - name: echo
+            args:
+              text: "hello"
+      - text: "The echo says hello"
+expect:
+  finalContains:
+    - "echo says hello"
+  toolCalled:
+    - name: echo
+      times: 1
+  toolOrder:
+    - echo
+  toolResult:
+    - name: echo
+      resultContains: "echo: hello"
+      isError: false
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,34 @@
+id: code-36-multi-file-refactor
+name: 跨文件重命名一次改三个文件
+systemPrompt: You are a coding assistant. Rename the symbol consistently across every referencing file.
+tools:
+  - name: file_edit
+    description: Apply an edit.
+    returns: "patched"
+turns:
+  - user: "把 UserService 里的 getUserById 重命名为 findUserById，所有引用一起改"
+    model:
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "src/service/UserService.java"
+              edit: "rename getUserById -> findUserById"
+          - name: file_edit
+            args:
+              path: "src/controller/UserController.java"
+              edit: "update call site"
+          - name: file_edit
+            args:
+              path: "src/test/UserServiceTest.java"
+              edit: "update test call site"
+      - text: "三个文件已一致改名：UserService、UserController、UserServiceTest。"
+expect:
+  finalContains:
+    - "三个文件"
+  toolCalled:
+    - name: file_edit
+      times: 3
+      argsContains:
+        edit: "findUserById"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

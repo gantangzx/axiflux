@@ -1,0 +1,34 @@
+id: 23-memory-distractors
+name: 干扰信息——多条记忆并存时检索命中正确事实
+memories:
+  - content: "用户家里宠物猫的名字叫年糕，是一只橘猫"
+    summary: "宠物猫：年糕（橘猫）"
+    tags: ["pet", "cat"]
+    importance: 7
+  - content: "用户最常用的编程语言是 Rust，构建工具固定用 cargo"
+    summary: "技术栈：Rust + cargo"
+    tags: ["coding", "rust"]
+    importance: 7
+  - content: "用户每天早上七点半起床，晨跑三公里"
+    summary: "作息：七点半晨跑"
+    tags: ["habit", "fitness"]
+    importance: 5
+  - content: "用户的季度 OKR 包含把 tianshu-agent 推到生产可用"
+    summary: "OKR：tianshu-agent 生产可用"
+    tags: ["work", "okr"]
+    importance: 6
+tools: []
+turns:
+  - user: "我家里宠物猫叫什么名字？"
+    model:
+      - text: "你的宠物猫叫年糕，是一只橘猫。"
+expect:
+  finalContains:
+    - "年糕"
+  recall:
+    - query: "家里宠物猫的名字叫什么"
+      contains: ["年糕"]
+      notContains: ["Rust", "晨跑", "OKR"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

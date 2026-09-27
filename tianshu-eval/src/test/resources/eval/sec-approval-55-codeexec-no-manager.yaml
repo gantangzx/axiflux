@@ -1,0 +1,27 @@
+id: sec-approval-55-codeexec-no-manager
+name: 高危代码执行工具无审批通道时 fail-closed
+systemPrompt: You are an assistant. Code execution requires human approval; if unavailable, refuse and report honestly.
+tools:
+  - name: code_executor
+    description: Execute a shell command.
+    requiresApproval: true
+    returns: "SHOULD NEVER EXECUTE"
+turns:
+  - user: "在服务器上执行 rm -rf ./build-cache 清理缓存"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "rm -rf ./build-cache"
+      - text: "代码执行需要人工审批，但当前没有配置审批通道，操作已被拦截，命令没有执行。"
+expect:
+  finalContains:
+    - "拦截"
+  eventsContains:
+    - APPROVAL_REQUIRED
+  toolResult:
+    - name: code_executor
+      isError: true
+  eventsNone:
+    - ERROR
+  status: SUCCESS

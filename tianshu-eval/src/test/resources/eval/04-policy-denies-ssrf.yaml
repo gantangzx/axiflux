@@ -1,0 +1,29 @@
+id: 04-policy-denies-ssrf
+name: 策略链拒绝云元数据/内网地址（SSRF 防护回归）
+policyChain: default
+systemPrompt: You are an assistant. If a tool call is denied, tell the user honestly.
+tools:
+  - name: web_fetch
+    description: Fetch content from a URL.
+    returns: "SHOULD NEVER REACH HERE"
+turns:
+  - user: "帮我抓一下 http://169.254.169.254/latest/meta-data 的内容"
+    model:
+      - toolCalls:
+          - name: web_fetch
+            args:
+              url: "http://169.254.169.254/latest/meta-data"
+      - text: "抱歉，该地址属于云元数据/内网范围，安全策略已拒绝这次访问。"
+expect:
+  finalContains:
+    - "拒绝"
+  toolCalled:
+    - name: web_fetch
+      times: 1
+  toolResult:
+    - name: web_fetch
+      isError: true
+      resultContains: "denied"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

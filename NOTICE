@@ -1,0 +1,42 @@
+天枢 Agent 平台（Tianshu Agent Platform）
+Copyright (c) 2026 gantangzx. All rights reserved.
+
+本产品为 open-core 双层许可产品：
+
+1) 社区版（Community Edition）
+   许可：Apache License, Version 2.0（全文见 LICENSE 文件）
+   范围：tianshu-core / tianshu-storage / tianshu-spring / tianshu-registry / tianshu-app
+         （即不包含 tianshu-ee-* 模块的全部代码）
+   说明：Apache-2.0 含显式专利授权，允许商用、修改、再分发（保留版权与许可声明）。
+
+2) 企业版模块（Enterprise Edition，目录/构件名前缀 tianshu-ee-）
+   许可：Tianshu Enterprise License 1.0（全文见 LICENSE-EE.md）
+   范围：tianshu-ee-core / tianshu-ee-sso / tianshu-ee-audit 等企业版能力模块
+   说明：企业版为专有许可（source-available，非开源）。使用、部署、二次分发须取得 gantang
+         的有效商业授权（License 文件授权），且不得用于规避社区版之外的商业授权限制。
+
+商标声明
+   本产品名称、Logo 与「天枢 / Tianshu」标识归 gantang 所有。
+   ⚠ 注意：在与客户或渠道对外发布前，须完成商标可注册性检索与申请（见
+   docs/legal/trademark-checklist.md）。若检索结论为不可注册，须按预案更换产品名并
+   同步更新全部对外材料。本文件中的名称使用不构成商标权主张。
+
+第三方组件
+   本产品以二进制依赖形式使用了若干第三方开源组件（Spring Boot、Netty、Jackson、
+   Hibernate ORM、Flyway、LangChain4j、PostgreSQL JDBC、Lettuce 等）。
+   完整清单、版本与许可（含需法务确认的弱 copyleft 组件）见 THIRD-PARTY-LICENSES.md，
+   该文件由 scripts/ops/gen-third-party-licenses.py 直读发布 jar 生成，随每次发布更新。
+
+   各组件的版权归其各自作者所有。分发本产品（含社区版）时须一并提供本 NOTICE、
+   LICENSE 与 THIRD-PARTY-LICENSES.md。
+
+依赖的独立服务（不属于本产品分发包，由客户自行部署或采用本产品提供的编排）
+   - PostgreSQL 16（PostgreSQL License，BSD 风格）
+   - pgvector（PostgreSQL License）
+   - Redis 7（原 BSD-3-Clause；Redis 7.4+ 采用 RSALv2/SSPLv1 双许可，商用部署前请确认选型与版本）
+   - 容器运行时 Docker / Podman（各自许可）
+   - JDK 25（若随包分发，按所选 JDK 发行版许可，如 Eclipse Temurin GPLv2+CE）
+
+联系方式
+   商务与合作：见官网/合同载明的联系方式
+   安全与漏洞披露：见 SECURITY.md（如存在）或合同载明的安全联系人

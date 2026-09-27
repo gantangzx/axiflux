@@ -1,0 +1,23 @@
+id: mem-37-emergency-contact
+name: 紧急联系人事实检索
+tools: []
+memories:
+  - content: "用户的紧急联系人是母亲赵惠兰，电话 139-0000-6621，仅限紧急情况使用。"
+    summary: "紧急联系人 赵惠兰 13900006621"
+    tags: ["emergency", "contact"]
+    importance: 10
+  - content: "用户常用快递柜在小区南门 12 号柜机。"
+    summary: "快递柜位置 南门12号"
+    tags: ["daily"]
+    importance: 3
+turns:
+  - user: "我出事了，该联系谁？电话多少？"
+    model:
+      - text: "紧急联系人是你母亲赵惠兰，电话 139-0000-6621。"
+expect:
+  recall:
+    - query: "紧急联系人姓名电话号码"
+      contains: ["赵惠兰", "139-0000-6621"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

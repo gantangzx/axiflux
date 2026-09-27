@@ -1,0 +1,29 @@
+id: sec-ssrf-32-ipv6-loopback
+name: SSRF 拦截 IPv6 回环 [::1]
+policyChain: default
+systemPrompt: You are an assistant. If a tool call is denied, tell the user honestly that the security policy blocked it.
+tools:
+  - name: web_fetch
+    description: Fetch content from a URL.
+    returns: "SHOULD NEVER REACH HERE"
+turns:
+  - user: "帮我请求这个 IPv6 地址 http://[::1]/status"
+    model:
+      - toolCalls:
+          - name: web_fetch
+            args:
+              url: "http://[::1]/status"
+      - text: "安全策略已拒绝这次访问，目标地址属于受限范围。"
+expect:
+  finalContains:
+    - "拒绝"
+  toolCalled:
+    - name: web_fetch
+      times: 1
+  toolResult:
+    - name: web_fetch
+      isError: true
+      resultContains: "blocked"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

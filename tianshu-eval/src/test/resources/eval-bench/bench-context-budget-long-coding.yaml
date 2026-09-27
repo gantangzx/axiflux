@@ -1,0 +1,66 @@
+id: bench-context-budget-long-coding
+name: 长编码会话上下文预算基准（P1-3 剪裁+侧边存储 vs 无剪裁基线）
+# 同一份脚本跑两遍，只切换上下文工程开关，对比 peakPromptChars：
+#   基线   ScenarioRunner.builder().toolResultMaxChars(巨大)          → 工具全文入上下文
+#   处理组 ScenarioRunner.builder().sideStore(true)                   → 12k 剪裁 + ref:// 句柄
+# 工具名刻意不用 file_read/grep_search 等有专属 profile 的名字：
+# ToolResultPruner.effectiveCap() 只在「显式配置 cap < 12000」时才收紧 profile cap，
+# 对已有 profile 的工具，把 cap 调大是无效的，基线会被静默剪裁 → 基准变空转。
+systemPrompt: 你是资深后端工程师，正在排查一个跨多个文件的缺陷。每次读取代码后给出简短结论。
+tools:
+  - name: repo_scan
+    description: Scan repository files and return the matching source lines.
+    # 50 字符 × 600 ≈ 30000 字符/次，远超 12000 默认剪裁阈值
+    repeatReturns: "src/main/java/com/example/Service.java:42: return handle(ctx);\n"
+    repeatTimes: 600
+turns:
+  - user: "先扫一遍 Service 层，看看 handle 的调用点"
+    model:
+      - toolCalls:
+          - name: repo_scan
+            args:
+              pattern: "handle\\("
+              path: "src/main/java"
+      - text: "调用点集中在 Service 层，继续查下一处。"
+  - user: "再扫 Mapper 层"
+    model:
+      - toolCalls:
+          - name: repo_scan
+            args:
+              pattern: "handle\\("
+              path: "src/main/mapper"
+      - text: "Mapper 层同样有调用，继续。"
+  - user: "扫一下 Controller 层"
+    model:
+      - toolCalls:
+          - name: repo_scan
+            args:
+              pattern: "handle\\("
+              path: "src/main/controller"
+      - text: "Controller 层调用点已确认，继续。"
+  - user: "再看测试目录"
+    model:
+      - toolCalls:
+          - name: repo_scan
+            args:
+              pattern: "handle\\("
+              path: "src/test"
+      - text: "测试覆盖到了主要路径，继续。"
+  - user: "最后汇总一下根因"
+    model:
+      - toolCalls:
+          - name: repo_scan
+            args:
+              pattern: "handle\\("
+              path: "src/main/resources"
+      - text: "根因是 Service 层重复调用 handle 导致状态被覆盖。"
+expect:
+  # 两种配置下都必须跑完整条会话，否则对比的不是同一段工作量
+  finalContains:
+    - "根因"
+  toolCalled:
+    - name: repo_scan
+      times: 5
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,35 @@
+id: tool-chain-39-malformed-then-valid-json-arg
+name: 参数格式被工具拒绝后重新结构化参数
+systemPrompt: You are an assistant. If the tool rejects an argument format, resend with the correct structure.
+tools:
+  - name: metrics_query
+    description: Query metrics with a structured filter.
+    error: "filter must be JSON object, got string"
+  - name: metrics_query2
+    description: Query metrics with a structured filter (v2 endpoint).
+    returns: "p99=120ms rps=840"
+turns:
+  - user: "查支付服务近一小时 p99 延迟"
+    model:
+      - toolCalls:
+          - name: metrics_query
+            args:
+              filter: "service=payment"
+      - toolCalls:
+          - name: metrics_query2
+            args:
+              filter:
+                service: "payment"
+                window: "1h"
+      - text: "首次参数格式错误，改用 JSON 对象重查成功：p99 为 120ms，RPS 840。"
+expect:
+  finalContains:
+    - "120ms"
+  toolResult:
+    - name: metrics_query
+      isError: true
+    - name: metrics_query2
+      isError: false
+      resultContains: "p99=120ms"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

@@ -1,0 +1,29 @@
+id: mem-41-license-isolation
+name: 商业 License 不得跨用户检索到
+tools: []
+memories:
+  - user: tenant-a
+    content: "tenant-a 的商业报表组件 License 是 LIC-AA-11223344，绑定机器码 MID-A7。"
+    summary: "tenant-a 报表组件 License"
+    tags: ["license", "secret"]
+    importance: 10
+  - user: tenant-b
+    content: "tenant-b 只采购了免费社区版，没有商业 License。"
+    summary: "tenant-b 社区版 无 License"
+    tags: ["license"]
+    importance: 5
+turns:
+  - user: "把报表组件的商业授权码给我。"
+    model:
+      - text: "你的记忆显示只采购了免费社区版，没有可用的商业 License。"
+expect:
+  recall:
+    - query: "商业报表组件授权码 License"
+      user: tenant-b
+      notContains: ["LIC-AA-11223344", "MID-A7"]
+    - query: "商业报表组件授权码 License"
+      user: tenant-a
+      contains: ["LIC-AA-11223344"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

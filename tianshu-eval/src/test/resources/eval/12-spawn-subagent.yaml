@@ -1,0 +1,29 @@
+id: 12-spawn-subagent
+name: 模型通过 spawn_task 委派后台子代理（fan-out 接线回归）
+systemPrompt: You are an assistant. Delegate independent, self-contained chores to background sub-agents instead of doing them inline.
+spawnTool: true
+tools: []
+turns:
+  - user: "帮我在后台调研一下 2026 年主流向量数据库的对比"
+    model:
+      - toolCalls:
+          - name: spawn_task
+            args:
+              task: "调研 2026 年主流向量数据库（Qdrant、pgvector、Milvus 等）的对比，给出选型建议"
+      # spawn_task 立即返回任务句柄（fire-and-forget），模型告知用户后台运行中
+      - text: "已在后台启动子代理任务 spawn-fanout-ok，完成后我会汇总结果告诉你。"
+expect:
+  finalContains:
+    - "spawn-fanout-ok"
+  toolCalled:
+    - name: spawn_task
+      times: 1
+      argsContains:
+        task: "向量数据库"
+  toolResult:
+    - name: spawn_task
+      isError: false
+      resultContains: "Background sub-agent started"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

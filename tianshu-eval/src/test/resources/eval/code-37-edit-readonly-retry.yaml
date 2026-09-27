@@ -1,0 +1,33 @@
+id: code-37-edit-readonly-retry
+name: 文件只读导致编辑失败后调整目标再成功
+systemPrompt: You are a coding assistant. If an edit fails because the target is read-only/generated, edit the correct source file instead.
+tools:
+  - name: file_edit
+    description: Edit files.
+    error: "read-only file system: target/build/generated/A.java"
+  - name: file_edit_source
+    description: Edit the real source file.
+    returns: "patched src/main/java/A.java"
+turns:
+  - user: "改一下生成目录里 A 类的逻辑"
+    model:
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "target/build/generated/A.java"
+      - toolCalls:
+          - name: file_edit_source
+            args:
+              path: "src/main/java/A.java"
+      - text: "生成目录只读不能直接改，已改为修改真正的源文件 src/main/java/A.java。"
+expect:
+  finalContains:
+    - "源文件"
+  toolResult:
+    - name: file_edit
+      isError: true
+      resultContains: "read-only"
+    - name: file_edit_source
+      isError: false
+  eventsNone: ["ERROR"]
+  status: SUCCESS

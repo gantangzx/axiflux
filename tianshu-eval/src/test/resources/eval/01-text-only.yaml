@@ -1,0 +1,16 @@
+id: 01-text-only
+name: 纯文本回合直接成功
+systemPrompt: You are a concise helper.
+tools: []
+turns:
+  - user: "Hi"
+    model:
+      - text: "Hello from LLM"
+expect:
+  finalContains:
+    - "Hello from LLM"
+  toolNotCalled:
+    - echo
+  eventsNone:
+    - ERROR
+  status: SUCCESS

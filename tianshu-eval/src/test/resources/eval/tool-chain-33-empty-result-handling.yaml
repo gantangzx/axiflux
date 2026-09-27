@@ -1,0 +1,23 @@
+id: tool-chain-33-empty-result-handling
+name: 工具返回空结果时如实告知而非编造
+systemPrompt: You are an assistant. Empty results mean no data exists; say so explicitly.
+tools:
+  - name: orders_search
+    description: Search orders by customer.
+    returns: ""
+turns:
+  - user: "客户 acme 最近有订单吗？"
+    model:
+      - toolCalls:
+          - name: orders_search
+            args:
+              customer: "acme"
+      - text: "查询成功但返回为空，客户 acme 目前没有任何订单记录。"
+expect:
+  finalContains:
+    - "没有任何订单"
+  toolResult:
+    - name: orders_search
+      isError: false
+  eventsNone: ["ERROR"]
+  status: SUCCESS

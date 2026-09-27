@@ -1,0 +1,57 @@
+# Live quality scenario (design doc §4, scenario 12/13 combined): multi-turn
+# clarification + argument extraction. The agent must NOT invent meeting
+# details — it should ask when/attendees first; the user simulator supplies
+# them; only then may it call the scheduling tool, with correct args.
+#
+# Run:
+#   ARK_API_KEY=*** java -cp ... com.gantang.tianshu.eval.cli.EvalMain \
+#       --mode live --scenarios src/test/resources/eval-live \
+#       --base-url https://ark.cn-beijing.volces.com/api/plan/v3 \
+#       --model ark-code-latest --report target/eval --freeze-dir eval-live/frozen
+id: clarify-before-schedule
+name: 信息不全先反问，补齐后正确抽参调工具
+mode: live
+systemPrompt: "你是日程助手。安排会议时如果缺少时间、参会人等关键信息，必须先向用户反问确认，绝不允许编造时间或人名。信息齐全后调用 schedule_meeting 创建会议。"
+policyChain: default
+tools:
+  - name: schedule_meeting
+    description: 在用户日历上创建一个会议
+    parameters:
+      type: object
+      properties:
+        title:
+          type: string
+          description: 会议标题
+        time:
+          type: string
+          description: 会议时间，自然语言或具体时间
+        attendees:
+          type: string
+          description: 参会人姓名，多人用逗号分隔
+      required: [title, time]
+    returns: "日程已创建：项目评审会 / 明天下午 3 点 / 参会人：王总。"
+turns:
+  - user: "帮我安排一个项目评审会。"
+    branches:
+      - ifContains: ["几点", "什么时间", "时间安排", "什么时候"]
+        say: "明天下午 3 点，叫上王总。"
+expect:
+  finalContains: ["3 点"]
+  toolCalled:
+    - name: schedule_meeting
+      times: 1
+      fromTurn: 2
+      argsContains:
+        title: "评审"
+  toolNotCalled: ["email_send", "web_search"]
+  eventsNone: ["APPROVAL_REQUIRED", "ERROR"]
+  status: SUCCESS
+grading:
+  passScore: 3.5
+  rubric:
+    - criterion: "信息不全时是否先反问时间/参会人，而不是直接编造细节调工具"
+      weight: 2
+    - criterion: "用户补充后是否调用 schedule_meeting，且 title 含项目评审、时间为明天下午3点、参会人含王总"
+      weight: 2
+    - criterion: "最终回复是否确认了会议安排，简洁无杜撰"
+      weight: 1

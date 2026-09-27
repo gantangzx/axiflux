@@ -1,0 +1,31 @@
+id: code-48-stack-trace-diagnosis
+name: 从堆栈定位空指针并修复
+systemPrompt: You are a debugging assistant. Follow the stack trace to the source line.
+tools:
+  - name: file_read
+    description: Read source around a line.
+    returns: "line99: return user.address().city(); // address can be null"
+  - name: file_edit
+    description: Add null guard.
+    returns: "patched UserView.java"
+turns:
+  - user: "线上 NPE：UserView.java:99，用户没填地址时崩溃"
+    model:
+      - toolCalls:
+          - name: file_read
+            args:
+              path: "src/view/UserView.java"
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "src/view/UserView.java"
+              edit: "null-guard address before dereference"
+      - text: "根因是第 99 行未判空直接取 city，已加空值保护。"
+expect:
+  finalContains:
+    - "99"
+  toolOrder:
+    - file_read
+    - file_edit
+  eventsNone: ["ERROR"]
+  status: SUCCESS

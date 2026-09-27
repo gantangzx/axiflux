@@ -1,0 +1,26 @@
+id: mem-44-past-event-expired
+name: 一次性过期事件不再作为未来建议检索
+tools: []
+memories:
+  - content: "2026 年 6 月 1 日的旧版协议宣讲会报名通知，会议已结束。"
+    summary: "6月1日旧协议宣讲会 已结束"
+    tags: ["event"]
+    importance: 5
+    expired: true
+  - content: "2026 年 11 月 20 日新合规协议培训将在线举行，需提前在合规门户报名。"
+    summary: "11月20日新合规培训 需报名"
+    tags: ["event", "compliance"]
+    importance: 8
+    validUntilHours: 2160
+turns:
+  - user: "最近有什么合规培训可以报名？"
+    model:
+      - text: "下一场是 2026 年 11 月 20 日的新合规协议在线培训，需要在合规门户提前报名。"
+expect:
+  recall:
+    - query: "合规协议培训报名时间安排"
+      contains: ["11 月 20 日", "合规门户"]
+      notContains: ["6 月 1 日"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

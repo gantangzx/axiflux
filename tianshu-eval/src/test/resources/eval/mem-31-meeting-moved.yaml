@@ -1,0 +1,25 @@
+id: mem-31-meeting-moved
+name: 会议时间改期后旧时间通知失效
+tools: []
+memories:
+  - content: "项目周会原定于每周二上午十点在第三会议室召开，该安排已取消。"
+    summary: "周会旧时间：周二上午十点（已取消）"
+    tags: ["meeting"]
+    importance: 6
+    expired: true
+  - content: "项目周会已改到每周四下午三点，在第八会议室召开，从本月起执行。"
+    summary: "周会新时间：周四下午三点第八会议室"
+    tags: ["meeting"]
+    importance: 9
+turns:
+  - user: "这周项目周会到底是几点、在哪开？"
+    model:
+      - text: "周会已改到周四下午三点、第八会议室；周二上午的旧安排已取消。"
+expect:
+  recall:
+    - query: "项目周会时间地点会议室安排"
+      contains: ["周四下午三点", "第八会议室"]
+      notContains: ["周二上午十点"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

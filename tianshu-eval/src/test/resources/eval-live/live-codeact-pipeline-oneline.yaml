@@ -1,0 +1,36 @@
+# Live CodeAct benchmark: multi-step counting collapsed into one piped
+# command in a single call. Nightly only.
+id: live-codeact-pipeline-oneline
+name: CodeAct 统计类任务一条管道命令完成
+mode: live
+systemPrompt: "你是编码代理。能用一条管道命令（grep/sed/awk/wc 等组合）完成的检查，就用一次 code_executor 调用完成，不要拆成多次往返。"
+tools:
+  - name: code_executor
+    description: 执行 shell 命令
+    parameters:
+      type: object
+      properties:
+        command:
+          type: string
+      required: [command]
+    returns: "47"
+turns:
+  - user: "统计 src 目录下所有 Java 文件里 TODO 注释一共有多少处"
+expect:
+  finalContains: ["47"]
+  toolCalled:
+    - name: code_executor
+      times: 1
+      argsContains:
+        command: "|"
+  eventsNone: ["APPROVAL_REQUIRED", "ERROR"]
+  status: SUCCESS
+grading:
+  passScore: 4.0
+  rubric:
+    - criterion: "是否用一次 code_executor 调用、一条递归检索+计数的管道命令完成（如 grep -rn TODO | wc -l）"
+      weight: 3
+    - criterion: "是否只统计 Java 文件（--include=*.java 或路径限定），结果口径准确"
+      weight: 1
+    - criterion: "最终回答是否给出工具返回的数字 47，不编造明细"
+      weight: 1

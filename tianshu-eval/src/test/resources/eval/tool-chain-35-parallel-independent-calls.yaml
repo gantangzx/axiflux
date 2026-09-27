@@ -1,0 +1,32 @@
+id: tool-chain-35-parallel-independent-calls
+name: 同一轮并行发起两个独立工具调用
+systemPrompt: You are an assistant. Independent lookups may be issued together.
+tools:
+  - name: username_to_id
+    description: Resolve username to id.
+    returns: "uid-501"
+  - name: project_to_id
+    description: Resolve project to id.
+    returns: "pid-77"
+turns:
+  - user: "同时查用户 linus 的 id 和项目 kernel 的 id"
+    model:
+      - toolCalls:
+          - name: username_to_id
+            args:
+              username: "linus"
+          - name: project_to_id
+            args:
+              project: "kernel"
+      - text: "两个独立查询已并行完成：用户 uid-501，项目 pid-77。"
+expect:
+  finalContains:
+    - "uid-501"
+    - "pid-77"
+  toolCalled:
+    - name: username_to_id
+      times: 1
+    - name: project_to_id
+      times: 1
+  eventsNone: ["ERROR"]
+  status: SUCCESS

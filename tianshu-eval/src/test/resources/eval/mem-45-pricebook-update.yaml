@@ -1,0 +1,25 @@
+id: mem-45-pricebook-update
+name: 报价表更新后旧价格失效以新价为准
+tools: []
+memories:
+  - content: "专业版标准报价原为每席位每月 129 元，该价格表已废止。"
+    summary: "旧报价 129元 已废止"
+    tags: ["pricing"]
+    importance: 6
+    expired: true
+  - content: "专业版新报价为每席位每月 99 元，年付再享八折，Q4 起生效。"
+    summary: "新报价 99元 年付八折 Q4生效"
+    tags: ["pricing"]
+    importance: 9
+turns:
+  - user: "专业版现在每个席位每月多少钱？"
+    model:
+      - text: "专业版现价每席位每月 99 元，年付再打八折；129 元是已废止的旧价。"
+expect:
+  recall:
+    - query: "专业版每席位每月报价折扣"
+      contains: ["99 元"]
+      notContains: ["129"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

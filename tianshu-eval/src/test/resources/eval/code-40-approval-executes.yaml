@@ -1,0 +1,28 @@
+id: code-40-approval-executes
+name: 代码执行经人工批准后执行成功
+systemPrompt: You are a coding assistant. Wait for approval, then run the migration.
+approval: approve
+tools:
+  - name: code_executor
+    description: Execute a migration command.
+    requiresApproval: true
+    returns: "migrated 12 rows in 0.4s"
+turns:
+  - user: "执行 V12 数据库迁移脚本"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "flyway migrate -target=12"
+      - text: "已获批准并执行迁移：12 行数据完成迁移。"
+expect:
+  finalContains:
+    - "12 行"
+  eventsContains:
+    - APPROVAL_REQUIRED
+  toolResult:
+    - name: code_executor
+      isError: false
+      resultContains: "migrated"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

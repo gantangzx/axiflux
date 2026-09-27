@@ -1,0 +1,17 @@
+# Normalize all text files to LF in both repo and working tree.
+# Prevents CRLF/LF flip-flop between Windows editors and CI.
+* text=auto eol=lf
+
+# Binary files — never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.bmp binary
+*.ico binary
+*.jar binary
+*.war binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

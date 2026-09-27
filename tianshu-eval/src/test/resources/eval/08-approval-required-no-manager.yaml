@@ -1,0 +1,33 @@
+id: 08-approval-required-no-manager
+name: 需审批工具在无审批通道时被拦截（human-in-the-loop 回归）
+systemPrompt: You are an assistant. High-risk actions need human approval; report honestly when blocked.
+tools:
+  - name: send_email
+    description: Send an email to a recipient.
+    requiresApproval: true
+    returns: "邮件已发送"
+turns:
+  - user: "给 boss@example.com 发封邮件，说今晚要加班"
+    model:
+      - toolCalls:
+          - name: send_email
+            args:
+              to: "boss@example.com"
+              body: "今晚要加班"
+      # 无 ApprovalManager：ASK → APPROVAL_REQUIRED 事件后调用被拒，工具结果为失败
+      - text: "这封邮件需要人工审批，但当前没有配置审批通道，操作已被拦截，邮件未发出。"
+expect:
+  finalContains:
+    - "审批"
+  eventsContains:
+    - APPROVAL_REQUIRED
+  toolCalled:
+    - name: send_email
+      times: 1
+  toolResult:
+    - name: send_email
+      isError: true
+      resultContains: "Approval"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

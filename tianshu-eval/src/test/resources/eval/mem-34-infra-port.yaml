@@ -1,0 +1,23 @@
+id: mem-34-infra-port
+name: 基础设施端口与负责人事实检索
+tools: []
+memories:
+  - content: "支付网关生产环境服务端口固定为 18443，负责人是运维孙岚，变更需走变更单。"
+    summary: "支付网关端口 18443 负责人孙岚"
+    tags: ["infra", "payment"]
+    importance: 9
+  - content: "团队周报名为《质量周报》，每周五下班前由各组接口人提交。"
+    summary: "质量周报周五提交"
+    tags: ["process"]
+    importance: 4
+turns:
+  - user: "支付网关生产环境跑在哪个端口？负责人是谁？"
+    model:
+      - text: "支付网关生产端口是 18443，负责人是孙岚，变更需走变更单。"
+expect:
+  recall:
+    - query: "支付网关生产服务端口负责人"
+      contains: ["18443", "孙岚"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

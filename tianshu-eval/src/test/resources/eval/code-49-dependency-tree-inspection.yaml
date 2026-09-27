@@ -1,0 +1,23 @@
+id: code-49-dependency-tree-inspection
+name: 单次命令拿到依赖树并给出冲突结论
+systemPrompt: You are a coding agent. Use one command to gather dependency data, then conclude.
+tools:
+  - name: code_executor
+    description: Run build tooling.
+    returns: "omitted: com.google.guava:guava:jar:25.1-jre (managed 33.0.0)"
+turns:
+  - user: "看下 guava 版本有没有冲突"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn dependency:tree -Dincludes=com.google.guava"
+      - text: "依赖树显示旧版 25.1-jre 已被统一管理到 33.0.0，不存在实际冲突。"
+expect:
+  finalContains:
+    - "33.0.0"
+  toolCalled:
+    - name: code_executor
+      times: 1
+  eventsNone: ["ERROR"]
+  status: SUCCESS

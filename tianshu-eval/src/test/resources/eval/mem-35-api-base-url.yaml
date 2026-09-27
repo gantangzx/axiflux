@@ -1,0 +1,25 @@
+id: mem-35-api-base-url
+name: 接口基地址事实检索
+tools: []
+memories:
+  - content: "结算系统对外 API 基地址固定为 https://api.settle.tianqu.example/v3，只接受 TLS1.3。"
+    summary: "结算 API 基地址 v3 TLS1.3"
+    tags: ["api"]
+    importance: 8
+  - content: "旧版 v2 基地址 https://api.settle.tianqu.example/v2 已下线停用。"
+    summary: "结算 v2 基地址已下线"
+    tags: ["api", "deprecated"]
+    importance: 4
+    expired: true
+turns:
+  - user: "结算系统接口现在该调哪个地址？"
+    model:
+      - text: "应调用 v3 基地址 https://api.settle.tianqu.example/v3，且仅支持 TLS 1.3；v2 已下线。"
+expect:
+  recall:
+    - query: "结算系统对外接口基地址版本"
+      contains: ["v3", "TLS1.3"]
+      notContains: ["/v2"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

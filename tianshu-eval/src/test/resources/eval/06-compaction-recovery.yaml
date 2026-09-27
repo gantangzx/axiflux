@@ -1,0 +1,19 @@
+id: 06-compaction-recovery
+name: 上下文溢出触发压缩后重试成功（M4 长会话可靠性）
+systemPrompt: You are a helpful assistant.
+contextWindowTokens: 8000
+seedHistoryTurns: 16
+tools: []
+turns:
+  - user: "继续刚才的话题"
+    model:
+      # 第一次模型调用：上下文超长报错，触发 CompactionService 摘要后重试
+      - error: overflow
+      # 重试（摘要走 complete()，不消耗脚本步）：恢复正常
+      - text: "recovered-after-compaction：旧对话已压缩，我们可以继续。"
+expect:
+  finalContains:
+    - "recovered-after-compaction"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

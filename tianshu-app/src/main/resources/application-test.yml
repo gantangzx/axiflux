@@ -1,0 +1,122 @@
+# ============================================================================
+# Tianshu 预发环境 (profile = test)
+#
+# 定位：类生产（production-like）预发，是发布到 prod 前的最后一道验证。
+#       配置必须与 prod 同构，用于验证“生产加固策略”本身，而非业务联调。
+#   - 开启鉴权；默认对接测试 IdP（OIDC/JWKS，非对称），也可用 HS256
+#   - 工具策略 whitelist、SSRF 防护开启、code_executor 走容器沙箱
+#   - Stripe【测试模式】，但 webhook 使用 Stripe 后台注册的【固定端点】
+#     （不是 dev 用的 CLI 临时隧道），从而验证真实生产 webhook 形态
+#   - INFO 日志、配额强制
+#
+# 激活：SPRING_PROFILES_ACTIVE=test（scripts/start.bat test）
+# 密钥：全部走环境变量 / secret manager，本文件无明文敏感信息。
+#
+# 与 prod 的唯一差别：连独立的预发数据库/Redis、Stripe 测试密钥，且不接真实钱。
+# ============================================================================
+
+spring:
+  application:
+    name: tianshu-test
+  datasource:
+    url: ${PG_URL:jdbc:postgresql://test-pg.internal:5432/tianshu_test}
+    username: ${PG_USER:tianshu}
+    password: ${PG_PASSWORD:}               # 必填，无默认值
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 5
+      connection-timeout: 10000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: ${REDIS_HOST:test-redis.internal}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 1                           # 与生产/开发隔离
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 5
+
+  # 预发默认对接测试 IdP（与 prod 同构）。暂未搭建 IdP 时，保持注释，
+  # 系统回退到本地 HS256（AUTH_SECRET），但 token 签发端点保持关闭。
+  # security:
+  #   oauth2:
+  #     resourceserver:
+  #       jwt:
+  #         issuer-uri: ${OIDC_ISSUER_URI:https://test-idp.internal/realms/tianshu}
+
+tianshu:
+  auth:
+    enabled: true
+    secret: ${AUTH_SECRET:}
+    default-ttl-seconds: 1800
+    require-explicit-scopes: true
+    token-endpoint-enabled: false           # 关闭自服务签发端点（与 prod 一致）
+
+  billing:
+    enabled: true
+    public-url: ${TIANSHU_PUBLIC_URL:https://test-app.example.com}
+    secret-key: ${STRIPE_SECRET_KEY:}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+    # Stripe Dashboard 预发端点的固定签名密钥（Add endpoint -> 指向本环境）
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    trial-days: 14
+
+    # Stripe【测试模式】价格（与 dev 同一测试账户也可，建议预发用独立产品便于隔离）
+    tier-price:
+      pro: price_1UIPbdEflqQPvhmbl7v5TKZC
+      team: price_1UIlYKEflqQPvhmbb0gGqZy9
+    price-plan:
+      price_1UIPbdEflqQPvhmbl7v5TKZC: pro
+      price_1UIlYKEflqQPvhmbb0gGqZy9: team
+
+    quota:
+      enabled: true
+
+  session:
+    provider: jpa
+
+  vector:
+    provider: ${VECTOR_PROVIDER:pgvector}
+    dimension: 2048
+    metric: cosine
+    collectionName: tianshu_memory_test
+    embed-url: https://ark.cn-beijing.volces.com/api/v3/embeddings/multimodal
+    embed-model: doubao-embedding-vision-251215
+    embed-api-key: ${EMBED_API_KEY:${ARK_API_KEY:}}
+
+  scheduler:
+    enabled: true
+    poolSize: 10
+    lock-provider: redis
+
+  agent:
+    maxIterations: 25
+    toolTimeoutSeconds: 30
+    spawnTimeoutSeconds: 180
+
+  tools:
+    policy-mode: whitelist
+    policy-allowed: calculator,date_time,web_search,web_fetch,http_client,file_read
+    policy-blocked: code_executor,spawn_task
+    allow-private-network: false
+    code-executor-sandbox: docker
+    docker-image: alpine:3.20
+    docker-memory: 512m
+    docker-cpus: 1.0
+    egress-proxy: ${EGRESS_PROXY:}
+    auto-approve-budget-enabled: false
+    auto-approve-budget-default: 0
+    auto-approve-budget-risk-ceiling: READ
+
+  skills:
+    enabled: true
+    root-dir: ${SKILLS_ROOT:./skills}
+
+logging:
+  level:
+    com.gantang.tianshu: INFO
+    org.springframework.security: WARN

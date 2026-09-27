@@ -1,0 +1,43 @@
+id: 03-multi-turn-multi-tool
+name: 多轮会话 + 多工具顺序 + 禁止无关工具
+systemPrompt: You are an assistant. Search before you answer; never send email.
+tools:
+  - name: web_search
+    description: Search the web.
+    returns: "2026 年新规：报销截止日为每月 8 号。"
+  - name: calendar_check
+    description: Check the calendar.
+    returns: "今天是 2026-09-04。"
+turns:
+  - user: "这个月报销截止到几号？"
+    model:
+      - toolCalls:
+          - name: web_search
+            args:
+              q: "报销截止日 2026"
+      - text: "根据最新规定，报销截止到每月 8 号。"
+  - user: "那今天几号？"
+    model:
+      - toolCalls:
+          - name: calendar_check
+            args: {}
+      - text: "今天是 9 月 4 日，还在报销期内。"
+expect:
+  finalContains:
+    - "9 月 4 日"
+  finalNotContains:
+    - "每月 5 号"
+  toolCalled:
+    - name: web_search
+      times: 1
+    - name: calendar_check
+      times: 1
+  toolOrder:
+    - web_search
+    - calendar_check
+  toolNotCalled:
+    - email_send
+  eventsNone:
+    - ERROR
+    - APPROVAL_REQUIRED
+  status: SUCCESS

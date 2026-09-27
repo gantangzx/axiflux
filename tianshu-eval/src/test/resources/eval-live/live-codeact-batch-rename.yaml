@@ -1,0 +1,40 @@
+# Live CodeAct benchmark: batch rename must be ONE script execution, not
+# 37 per-file round trips. Deterministic gate: code_executor called exactly
+# once and the answer reports the tool's count; the rubric scores script
+# quality. Nightly only (real model, scripted environment).
+id: live-codeact-batch-rename
+name: CodeAct 批量重命名单轮完成率
+mode: live
+systemPrompt: "你是编码代理。重复性批量文件操作必须写成一段带循环的 shell 脚本，用一次 code_executor 调用完成，禁止逐文件多次调用。"
+tools:
+  - name: code_executor
+    description: 执行 shell 脚本，返回 stdout/stderr
+    parameters:
+      type: object
+      properties:
+        command:
+          type: string
+          description: 要执行的 shell 命令或脚本
+        workingDir:
+          type: string
+          description: 工作目录（相对路径留在工作区内）
+      required: [command]
+    returns: "renamed 37 files: *.tmp -> *.cache under build/out"
+turns:
+  - user: "把 build/out 目录下 37 个 .tmp 文件批量改成 .cache 后缀"
+expect:
+  finalContains: ["37"]
+  toolCalled:
+    - name: code_executor
+      times: 1
+  eventsNone: ["APPROVAL_REQUIRED", "ERROR"]
+  status: SUCCESS
+grading:
+  passScore: 4.0
+  rubric:
+    - criterion: "是否只用一次 code_executor 调用、以一段循环脚本（for/while/find -exec 等）完成全部 37 个文件，而不是逐文件多次调用"
+      weight: 3
+    - criterion: "命令是否安全正确（变量加引号、模式精确匹配 .tmp，不会误伤其他文件）"
+      weight: 2
+    - criterion: "最终是否如实报告工具返回的结果（37 个），没有编造额外输出"
+      weight: 1

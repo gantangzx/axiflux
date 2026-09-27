@@ -1,0 +1,30 @@
+id: tool-chain-37-double-spawn-relay
+name: 一轮委派两个后台任务并回报两个句柄
+systemPrompt: You are an assistant. Delegate independent research chores to background sub-agents and relay both handles.
+spawnTool: true
+tools: []
+turns:
+  - user: "后台并行调研两件事：Rust 异步运行时对比，以及 Java 虚拟线程现状"
+    model:
+      - toolCalls:
+          - name: spawn_task
+            args:
+              task: "调研 Rust 异步运行时（tokio/async-std/smol）对比"
+      - toolCalls:
+          - name: spawn_task
+            args:
+              task: "调研 Java 虚拟线程（JEP 444/491）生产现状"
+      - text: "两个后台任务已启动，句柄 eval-task-1 与 eval-task-2，完成后我会分别汇总。"
+expect:
+  finalContains:
+    - "eval-task-1"
+    - "eval-task-2"
+  toolCalled:
+    - name: spawn_task
+      times: 2
+  toolResult:
+    - name: spawn_task
+      isError: false
+      resultContains: "eval-task"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

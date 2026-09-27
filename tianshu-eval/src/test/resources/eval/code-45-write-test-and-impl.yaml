@@ -1,0 +1,40 @@
+id: code-45-write-test-and-impl
+name: 先写测试再写实现并运行
+systemPrompt: "You are a coding assistant doing TDD: write the failing test, implement, run it."
+tools:
+  - name: file_write
+    description: Create a file.
+    returns: "created"
+  - name: code_executor
+    description: Run tests.
+    returns: "PASS RateLimiterTest 4/4"
+turns:
+  - user: "给滑动窗口限流器补个实现，先写测试"
+    model:
+      - toolCalls:
+          - name: file_write
+            args:
+              path: "test/RateLimiterTest.java"
+              content: "class RateLimiterTest { ... }"
+      - toolCalls:
+          - name: file_write
+            args:
+              path: "src/RateLimiter.java"
+              content: "class RateLimiter { ... }"
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn test -Dtest=RateLimiterTest"
+      - text: "测试先行、随后实现，运行结果 4/4 通过。"
+expect:
+  finalContains:
+    - "4/4"
+  toolOrder:
+    - file_write
+    - file_write
+    - code_executor
+  toolCalled:
+    - name: file_write
+      times: 2
+  eventsNone: ["ERROR"]
+  status: SUCCESS

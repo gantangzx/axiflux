@@ -1,0 +1,52 @@
+# ============================================================================
+# Tianshu Skill Registry —— 独立技能注册中心（单一应用，无多 profile 拆分）
+#
+# 这是一个独立可部署服务（不是 tianshu-app 的一部分），默认端口 8090。
+# 所有敏感项（DB 口令、发布 token、签名密钥）只从环境变量读取，本文件可安全提交。
+# 详见 docs/registry.md。
+# ============================================================================
+
+server:
+  port: ${REGISTRY_PORT:8090}
+
+spring:
+  application:
+    name: tianshu-registry
+  datasource:
+    url: ${REGISTRY_DB_URL:jdbc:postgresql://localhost:5432/tianshu_registry}
+    username: ${REGISTRY_DB_USER:postgres}
+    # 无默认口令：不注入 REGISTRY_DB_PASSWORD 即用空密码（本地 trust/peer 认证）。
+    password: ${REGISTRY_DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+tianshu:
+  registry:
+    # Content-addressed zip storage (sha256 -> <dir>/ab/cd/<sha>.zip)
+    blob-dir: ${REGISTRY_BLOB_DIR:./registry-blobs}
+    # Bearer token for publish/admin endpoints.
+    # 启动时 fail-fast：保持内置 change-me 或留空将拒绝启动，必须显式注入强随机值。
+    publish-token: ${REGISTRY_PUBLISH_TOKEN:change-me}
+    max-zip-bytes: ${REGISTRY_MAX_ZIP_BYTES:52428800}   # 50 MiB
+    # Ed25519 content signing（roadmap D1）
+    signing-enabled: ${REGISTRY_SIGNING_ENABLED:true}
+    signing-key-file: ${REGISTRY_SIGNING_KEY_FILE:./registry-keys/ed25519.key}
+
+logging:
+  level:
+    com.gantang.tianshu.registry: ${REGISTRY_LOG_LEVEL:INFO}

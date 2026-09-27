@@ -1,0 +1,29 @@
+id: 22-memory-explicit-ttl
+name: 显式 TTL——临时事实过期后不再召回，长期事实保留
+memories:
+  - content: "用户本周临时在上海出差，这周例会改到晚上九点"
+    summary: "临时：本周在上海出差"
+    tags: ["temporary", "schedule"]
+    importance: 5
+    expired: true
+  - content: "用户常驻城市为深圳，团队办公室在南山区"
+    summary: "常驻：深圳南山"
+    tags: ["profile", "location"]
+    importance: 8
+tools: []
+turns:
+  - user: "我常驻哪个城市？办公室在哪？"
+    model:
+      - text: "你常驻深圳，办公室在南山区。"
+expect:
+  finalContains:
+    - "深圳"
+  finalNotContains:
+    - "上海"
+  recall:
+    - query: "用户常驻城市与办公室位置"
+      contains: ["深圳", "南山"]
+      notContains: ["上海", "出差", "例会"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,29 @@
+id: sec-approval-54-reject-file-write
+name: 人工拒绝后写入工具不得执行
+systemPrompt: You are an assistant. If an action is rejected, report honestly that nothing was written.
+approval: reject
+tools:
+  - name: file_write
+    description: Write content to a file.
+    requiresApproval: true
+    returns: "WRITTEN-SHOULD-NEVER-RETURN"
+turns:
+  - user: "把新的密钥配置写入 /etc/app/config.yaml"
+    model:
+      - toolCalls:
+          - name: file_write
+            args:
+              path: "/etc/app/config.yaml"
+              content: "token: rotated"
+      - text: "写入请求已被审批人拒绝，文件未做任何修改。"
+expect:
+  finalContains:
+    - "拒绝"
+  eventsContains:
+    - APPROVAL_REQUIRED
+  toolResult:
+    - name: file_write
+      isError: true
+  eventsNone:
+    - ERROR
+  status: SUCCESS

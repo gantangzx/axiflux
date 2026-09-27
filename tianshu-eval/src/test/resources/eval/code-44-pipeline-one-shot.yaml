@@ -1,0 +1,25 @@
+id: code-44-pipeline-one-shot
+name: CodeAct 用管道一条命令完成检查（单轮）
+systemPrompt: You are a coding agent. Combine multi-step inspection into a single piped command.
+tools:
+  - name: code_executor
+    description: Execute a shell command.
+    returns: "3 endpoints still use the legacy /v1 prefix"
+turns:
+  - user: "统计代码里还有多少处老的 /v1 接口前缀"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "grep -rn '/v1/' src | wc -l"
+      - text: "一条管道命令完成统计：还有 3 处端点在使用旧 /v1 前缀。"
+expect:
+  finalContains:
+    - "3 处"
+  toolCalled:
+    - name: code_executor
+      times: 1
+      argsContains:
+        command: "|"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

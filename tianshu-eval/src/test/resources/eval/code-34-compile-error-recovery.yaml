@@ -1,0 +1,44 @@
+id: code-34-compile-error-recovery
+name: 编译失败后读错改错再编译
+systemPrompt: You are a coding assistant. Read compiler errors, fix the source, recompile.
+tools:
+  - name: code_executor
+    description: Build the project.
+    returns: "BUILD PLACEHOLDER"
+  - name: file_read
+    description: Read source.
+    returns: "import java.util.List;\npublic class A { List<String> xs; }"
+  - name: file_edit
+    description: Edit source.
+    returns: "patched A.java"
+turns:
+  - user: "项目编译不过，处理一下"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn -q compile"
+      - toolCalls:
+          - name: file_read
+            args:
+              path: "src/main/java/A.java"
+      - toolCalls:
+          - name: file_edit
+            args:
+              path: "src/main/java/A.java"
+              edit: "add generic type witness"
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: "mvn -q compile"
+      - text: "第二次编译成功：问题是泛型推断失败，已补充类型见证。"
+expect:
+  finalContains:
+    - "编译成功"
+  toolOrder:
+    - code_executor
+    - file_read
+    - file_edit
+    - code_executor
+  eventsNone: ["ERROR"]
+  status: SUCCESS

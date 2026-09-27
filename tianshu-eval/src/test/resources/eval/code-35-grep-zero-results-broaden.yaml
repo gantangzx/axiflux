@@ -1,0 +1,27 @@
+id: code-35-grep-zero-results-broaden
+name: 检索零命中后放宽模式再查
+systemPrompt: You are a coding assistant. When a narrow search returns nothing, broaden the pattern before giving up.
+tools:
+  - name: grep_search
+    description: Search code.
+    returns: "NO-MATCH-PLACEHOLDER"
+turns:
+  - user: "找到重试逻辑在哪定义的"
+    model:
+      - toolCalls:
+          - name: grep_search
+            args:
+              pattern: "RetryTemplate.maxAttempts"
+      - toolCalls:
+          - name: grep_search
+            args:
+              pattern: "retry|backoff|attempt"
+      - text: "精确符号没有命中，放宽到 retry/backoff 关键词后已定位到重试配置位置。"
+expect:
+  finalContains:
+    - "放宽"
+  toolCalled:
+    - name: grep_search
+      times: 2
+  eventsNone: ["ERROR"]
+  status: SUCCESS

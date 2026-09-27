@@ -1,0 +1,25 @@
+id: code-32-codeact-batch-single-call
+name: CodeAct 批量重命名用一段脚本单轮完成（非逐文件往返）
+systemPrompt: You are a coding agent. For repetitive/batch file operations write ONE shell script with a loop and run it in a single code_executor call, instead of one call per file.
+tools:
+  - name: code_executor
+    description: Execute a shell script.
+    returns: "renamed 37 files: *.tmp -> *.cache under /build/out"
+turns:
+  - user: "把 build/out 下 37 个 .tmp 文件批量改成 .cache 后缀"
+    model:
+      - toolCalls:
+          - name: code_executor
+            args:
+              command: 'for f in /build/out/*.tmp; do mv "$f" "${f%.tmp}.cache"; done'
+      - text: "已用一段循环脚本一次性完成，共重命名 37 个文件。"
+expect:
+  finalContains:
+    - "37"
+  toolCalled:
+    - name: code_executor
+      times: 1
+      argsContains:
+        command: "for"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

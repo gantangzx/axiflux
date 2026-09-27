@@ -1,0 +1,31 @@
+id: 09-tool-result-pruned
+name: 超长工具结果经 ToolResultPruner 截断后再入历史
+systemPrompt: You are an assistant. Summarize tool output concisely.
+tools:
+  - name: big_report
+    description: Generate a very long report.
+    # 24 字 × 600 ≈ 14400 字符，超过 12000 截断阈值
+    repeatReturns: "这是工具生成的大段报告内容行，用于超过结果截断阈值。"
+    repeatTimes: 600
+turns:
+  - user: "生成本季度完整报告"
+    model:
+      - toolCalls:
+          - name: big_report
+            args:
+              scope: "quarterly"
+      - text: "报告内容很长，我已读取并完成总结。"
+expect:
+  finalContains:
+    - "总结"
+  toolCalled:
+    - name: big_report
+      times: 1
+  toolResult:
+    # 落库（hook 观测到）的结果必须是截断后的，带 omitted 标记
+    - name: big_report
+      isError: false
+      resultContains: "truncated"
+  eventsNone:
+    - ERROR
+  status: SUCCESS

@@ -1,0 +1,25 @@
+id: mem-38-tier-upgrade
+name: 套餐升级后旧档位信息失效
+tools: []
+memories:
+  - content: "用户最初订阅的是 Basic 基础版，月费 49 元。"
+    summary: "旧套餐 Basic 月费49"
+    tags: ["billing"]
+    importance: 5
+    expired: true
+  - content: "用户已升级到 Enterprise 企业版，年付 9800 元，含 SLA 与专属支持群。"
+    summary: "当前套餐 Enterprise 年付9800 SLA"
+    tags: ["billing", "vip"]
+    importance: 9
+turns:
+  - user: "我现在是什么套餐？费用多少？"
+    model:
+      - text: "你当前是 Enterprise 企业版，年付 9800 元，含 SLA 和专属支持群；Basic 是升级前的旧档位。"
+expect:
+  recall:
+    - query: "当前订阅套餐档位费用权益"
+      contains: ["Enterprise", "9800"]
+      notContains: ["Basic"]
+  eventsNone:
+    - ERROR
+  status: SUCCESS

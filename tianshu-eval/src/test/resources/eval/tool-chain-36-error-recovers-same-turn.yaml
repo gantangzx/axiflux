@@ -1,0 +1,34 @@
+id: tool-chain-36-error-recovers-same-turn
+name: 工具 5xx 后改用备用工具在同回合恢复
+systemPrompt: You are an assistant. If a service errors out, switch to its backup service within the same reply.
+tools:
+  - name: geoip_primary
+    description: GeoIP lookup (primary).
+    error: "HTTP 503 service unavailable"
+  - name: geoip_backup
+    description: GeoIP lookup (backup).
+    returns: "country=CN city=Hangzhou"
+turns:
+  - user: "查 8.8.8.8 的归属地"
+    model:
+      - toolCalls:
+          - name: geoip_primary
+            args:
+              ip: "8.8.8.8"
+      - toolCalls:
+          - name: geoip_backup
+            args:
+              ip: "8.8.8.8"
+      - text: "主服务返回 503，已切换备用服务：归属地为中国杭州。"
+expect:
+  finalContains:
+    - "杭州"
+  toolResult:
+    - name: geoip_primary
+      isError: true
+      resultContains: "503"
+    - name: geoip_backup
+      isError: false
+      resultContains: "Hangzhou"
+  eventsNone: ["ERROR"]
+  status: SUCCESS

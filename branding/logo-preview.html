@@ -1,0 +1,68 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { width:960px; height:560px; background:#f3f1ec; display:flex; }
+  .panel { flex:1; padding:44px 48px; display:flex; flex-direction:column; }
+  .dark { background:#0e1016; }
+  .light { background:#faf9f7; }
+  .row { display:flex; align-items:center; gap:18px; margin-top:18px; }
+  .cap { font-size:12px; color:#9aa0ad; margin-top:10px; }
+  .light .cap { color:#9b958a; }
+  .word { font-weight:800; font-size:27px; letter-spacing:2px; }
+  .dark .word { color:#f4f4f5; }
+  .light .word { color:#20242e; }
+  .sub { font-size:11px; font-weight:600; letter-spacing:4.5px; color:#9aa0ad; margin-top:2px; }
+  .sizes { display:flex; align-items:flex-end; gap:26px; margin-top:34px; }
+  .sizes div { text-align:center; }
+  .sizes span { display:block; font-size:11px; color:#8a8f9c; margin-top:8px; }
+  .title { font-size:13px; font-weight:700; letter-spacing:1px; margin-bottom:6px; }
+  .dark .title { color:#cfd4e0; }
+  .light .title { color:#5c5f6a; }
+  .divider { height:1px; background:rgba(255,255,255,.08); margin:30px 0; }
+  .light .divider { background:rgba(0,0,0,.07); }
+  .mock { display:flex; align-items:center; gap:10px; margin-top:4px; }
+  .mock .name { font-size:14.5px; font-weight:700; }
+  .dark .mock .name { color:#f4f4f5; } .light .mock .name { color:#1f2329; }
+  .mock .tag { font-size:11px; color:#9aa0ad; }
+</style></head>
+<body>
+  <div class="panel dark">
+    <div class="title">天枢 · DARK</div>
+    <div class="row">
+      <img src="tianshu-mark.svg" width="72" height="72">
+      <div><div class="word">天枢</div><div class="sub">TIANSHU</div></div>
+    </div>
+    <div class="cap">北斗第一星 · 众星之枢 —— 智能体编排中枢</div>
+    <div class="divider"></div>
+    <div class="sizes">
+      <div><img src="tianshu-mark.svg" width="56"><span>56px</span></div>
+      <div><img src="tianshu-mark.svg" width="32"><span>32</span></div>
+      <div><img src="tianshu-mark.svg" width="24"><span>24</span></div>
+      <div><img src="tianshu-mark.svg" width="16"><span>16 favicon</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="mock"><img src="tianshu-mark.svg" width="28"><div><div class="name">天枢</div><div class="tag">Agent Platform</div></div></div>
+  </div>
+  <div class="panel light">
+    <div class="title">天枢 · LIGHT</div>
+    <div class="row">
+      <img src="tianshu-lockup.svg" width="180">
+    </div>
+    <div class="cap">横版锁定组合（图标 + 中文标 + 英文标）</div>
+    <div class="divider"></div>
+    <div class="sizes">
+      <div><img src="tianshu-mark.svg" width="56"><span>56px</span></div>
+      <div><img src="tianshu-mark.svg" width="32"><span>32</span></div>
+      <div><img src="tianshu-mark.svg" width="24"><span>24</span></div>
+      <div><img src="tianshu-mark.svg" width="16"><span>16</span></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:14px;align-items:center;margin-top:4px">
+      <img src="tianshu-mark.svg" width="40">
+      <div style="font-size:12px;line-height:1.7;color:#6b6f7a">
+        主色 <b>#FF5C5C</b>（对齐控制台 accent）<br>
+        墨台 #1C2231→#0B0D13 · 七星乳白 · 天枢主色
+      </div>
+    </div>
+  </div>
+</body></html>

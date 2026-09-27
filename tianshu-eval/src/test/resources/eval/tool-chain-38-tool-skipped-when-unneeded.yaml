@@ -1,0 +1,18 @@
+id: tool-chain-38-tool-skipped-when-unneeded
+name: 知识可直接回答时不调用工具
+systemPrompt: You are an assistant. Do not call tools for questions you can answer directly.
+tools:
+  - name: web_search
+    description: Search the web.
+    returns: "SHOULD NOT BE CALLED"
+turns:
+  - user: "用一句话解释什么是 HTTP 404"
+    model:
+      - text: "HTTP 404 表示服务器找不到请求的资源，即页面或接口不存在。"
+expect:
+  finalContains:
+    - "404"
+  toolNotCalled:
+    - web_search
+  eventsNone: ["ERROR"]
+  status: SUCCESS

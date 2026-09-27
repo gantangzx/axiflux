@@ -1,0 +1,26 @@
+id: sec-ssrf-48-public-ok
+name: 公网地址正常放行
+policyChain: default
+systemPrompt: You are an assistant. Report the fetched content.
+tools:
+  - name: web_fetch
+    description: Fetch content from a URL.
+    returns: "PUBLIC-OK-PAYLOAD"
+turns:
+  - user: "抓取这个公开接口 https://example.com/api/data"
+    model:
+      - toolCalls:
+          - name: web_fetch
+            args:
+              url: "https://example.com/api/data"
+      - text: "抓取成功，内容为 PUBLIC-OK-PAYLOAD。"
+expect:
+  finalContains:
+    - "PUBLIC-OK-PAYLOAD"
+  toolResult:
+    - name: web_fetch
+      isError: false
+      resultContains: "PUBLIC-OK-PAYLOAD"
+  eventsNone:
+    - ERROR
+  status: SUCCESS
