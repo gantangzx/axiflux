@@ -3,14 +3,14 @@
 **响应式 AI Agent 框架 Java 实现** — 模块化、可扩展、安全优先。
 
 > 天枢：北斗第一星，众星之枢 —— 智能体编排中枢。
-> 项目代号 / Maven artifactId：`tianshu-agent` / `tianshu-*`（品牌 OpenClaw → Tianshu 已全量改名）。
+> 项目代号 / Maven artifactId：`tianshu-agent` / `tianshu-*`
 
 [![Java 25](https://img.shields.io/badge/Java-25-blue.svg)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot 4.1](https://img.shields.io/badge/Spring%20Boot-4.1-green.svg)](https://spring.io/projects/spring-boot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Discussions](https://img.shields.io/badge/chat-Discussions-5865F2.svg)](https://github.com/gantangzx/tianshu-agent/discussions)
 
-**使用问题 / 私有化部署与企业版合作**：请到 [GitHub Discussions](https://github.com/gantangzx/tianshu-agent/discussions) 发起讨论；缺陷请提 [Issues](https://github.com/gantangzx/tianshu-agent/issues)。
+**使用问题**：请到 [GitHub Discussions](https://github.com/gantangzx/tianshu-agent/discussions) 发起讨论；缺陷请提 [Issues](https://github.com/gantangzx/tianshu-agent/issues)。
 
 ---
 
@@ -319,33 +319,6 @@ SkillResult result = executor.execute("my-workflow", AgentContext.of("计算增�
 
 ---
 
-## 💰 开源边界与企业版（Open-core）
-
-本仓库是天枢的**开源社区版**，开源的是 **Agent 框架 / SDK 与单机控制台**，采用 MIT 许可：
-
-- **开源（本仓库）**：响应式 Agent 引擎、工具与技能框架、记忆能力、调度、模型路由，
-  以及可独立运行的单机控制台，可自由嵌入你自己的 Java 应用或自建自用。
-- **闭源企业版（不在本仓库）**：多租户与组织 RBAC、计费 / 订阅（Stripe）、配额与功能门禁、
-  自助注册与运营后台，以及企业版 SSO（OIDC/SAML）、SCIM、审计外送、信创适配等。
-
-开源引擎通过 **SPI + 可选自动装配（`ObjectProvider`）** 调用企业能力；缺少企业 jar 时这些
-能力**不参与编译、也不存在**，而非依赖可被删除的运行时开关。默认 `mvn clean install`
-只构建开源模块；`-Pee` profile 用于在内部组装包含企业层的发行版。
-
-控制台通过构建期 `VITE_EDITION` 区分版本：社区版访问计费、组织、用量、运营等路由时显示
-「企业版功能」引导卡片，企业版才加载真实页面。
-
-### 私有化部署 / 企业版合作
-
-我们提供：
-- **托管 SaaS**：免部署、免运维，按套餐订阅；
-- **私有化部署 / 企业版**：内网部署、License 授权，可叠加 SSO、SCIM、审计外送、信创适配与专属 SLA。
-
-私有化与渠道合作请在 [GitHub Discussions](https://github.com/gantangzx/tianshu-agent/discussions)
-发起讨论（类别「企业版合作」），我们会跟进。
-
----
-
 ## 📊 可观测性
 
 - **Micrometer 集成**：`agent.request.count`、`tool.execution.time`、`llm.latency`
@@ -448,7 +421,6 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0;
 - [离线 / 私有化安装](docs/offline-install.md)
 - [高可用部署](docs/ha-deployment.md)
 - [备份与恢复](docs/backup-restore.md)
-- [信创适配](docs/xinchuang-adaptation.md)
 - [自助排障](docs/self-service-troubleshooting.md)
 
 ---
@@ -469,4 +441,4 @@ MIT License — 详见 [LICENSE](LICENSE)
 ---
 
 **文档版本**：2026-09-27  
-**项目状态**：v0.1.0-SNAPSHOT，开源社区版（框架 / SDK + 单机控制台）；企业版与私有化部署通过 GitHub Discussions 承接合作
+**项目状态**：v0.1.0-SNAPSHOT，开源社区版（框架 / SDK + 单机控制台）
