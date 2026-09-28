@@ -21,6 +21,7 @@ import {
   CrownOutlined,
   FilterOutlined,
   AppstoreOutlined,
+  NodeIndexOutlined,
   KeyOutlined,
   SafetyCertificateOutlined,
   IdcardOutlined,
@@ -73,6 +74,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { key: 'overview', label: '概览', desc: '系统状态、关键指标与快捷入口', icon: <DashboardOutlined /> },
       { key: 'monitor', label: '监控', desc: '运行时指标、工具调用与延迟', icon: <MonitorOutlined /> },
+      { key: 'workflows', label: '工作流', desc: '状态图定义、运行与暂停恢复', icon: <NodeIndexOutlined /> },
       { key: 'scheduler', label: '定时任务', desc: '定时与周期任务的调度管理', icon: <ClockCircleOutlined /> },
       { key: 'sessions', label: '会话管理', desc: '全部会话记录、状态与归档', icon: <BranchesOutlined /> },
       { key: 'memory', label: '记忆', desc: '长期记忆的检索与维护', icon: <BulbOutlined /> },

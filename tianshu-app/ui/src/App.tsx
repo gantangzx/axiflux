@@ -21,6 +21,7 @@ const AgentsPage = lazy(() => import('./pages/AgentsPage'))
 const ToolsPage = lazy(() => import('./pages/ToolsPage'))
 const SkillsPage = lazy(() => import('./pages/SkillsPage'))
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'))
+const WorkflowsPage = lazy(() => import('./pages/WorkflowsPage'))
 const SubagentsPage = lazy(() => import('./pages/SubagentsPage'))
 const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage'))
 const MemoryPage = lazy(() => import('./pages/MemoryPage'))
@@ -117,6 +118,8 @@ function Shell() {
         return <SkillsPage />
       case 'scheduler':
         return <SchedulerPage />
+      case 'workflows':
+        return <WorkflowsPage />
       case 'subagents':
         return <SubagentsPage />
       case 'approvals':
