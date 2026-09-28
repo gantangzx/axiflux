@@ -16,6 +16,7 @@ import java.util.Map;
 public record AgentContext(
     String sessionId,
     String userId,
+    String agentId,        // optional persona to run; null = the agent's default
     String currentQuery,
     String systemPrompt,
     Map<String, Object> metadata,
@@ -52,6 +53,7 @@ public record AgentContext(
     public String toString() {
         return "AgentContext[sessionId=" + sessionId
             + ", userId=" + userId
+            + ", agentId=" + agentId
             + ", currentQuery=" + currentQuery
             + ", systemPrompt=" + (systemPrompt != null ? systemPrompt.length() : 0) + " chars"
             + ", metadata=" + metadata
@@ -64,6 +66,7 @@ public record AgentContext(
     public static class Builder {
         private String sessionId;
         private String userId;
+        private String agentId;
         private String currentQuery = "";
         private String systemPrompt = "";
         private Map<String, Object> metadata = Map.of();
@@ -76,6 +79,7 @@ public record AgentContext(
         Builder(AgentContext ctx) {
             this.sessionId     = ctx.sessionId;
             this.userId        = ctx.userId;
+            this.agentId       = ctx.agentId;
             this.currentQuery  = ctx.currentQuery;
             this.systemPrompt  = ctx.systemPrompt;
             this.metadata      = ctx.metadata;
@@ -86,6 +90,7 @@ public record AgentContext(
 
         public Builder sessionId(String v)    { this.sessionId    = v; return this; }
         public Builder userId(String v)       { this.userId       = v; return this; }
+        public Builder agentId(String v)      { this.agentId      = v; return this; }
         public Builder currentQuery(String v){ this.currentQuery  = v; return this; }
         public Builder systemPrompt(String v) { this.systemPrompt  = v; return this; }
         public Builder metadata(Map<String, Object> v) { this.metadata = v; return this; }
@@ -97,7 +102,7 @@ public record AgentContext(
             if (sessionId == null) throw new IllegalStateException("sessionId is required");
             if (userId == null)   throw new IllegalStateException("userId is required");
             return new AgentContext(
-                sessionId, userId, currentQuery, systemPrompt,
+                sessionId, userId, agentId, currentQuery, systemPrompt,
                 metadata, attachments, forcedModel, byokApiKey
             );
         }
