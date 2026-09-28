@@ -263,7 +263,23 @@ public class WorkflowController {
     private static Map<String, Object> detail(StateGraph graph) {
         Map<String, Object> m = summary(graph);
         m.put("nodes", graph.nodes().values().stream()
-            .map(n -> Map.of("id", n.id(), "type", String.valueOf(n.kind())))
+            .map(n -> {
+                Map<String, Object> nm = new LinkedHashMap<>();
+                nm.put("id", n.id());
+                nm.put("type", String.valueOf(n.kind()));
+                nm.put("label", n.label() == null || n.label().isBlank() ? n.id() : n.label());
+                return nm;
+            })
+            .toList());
+        m.put("edges", graph.edges().stream()
+            .map(e -> {
+                Map<String, Object> em = new LinkedHashMap<>();
+                em.put("source", e.source());
+                em.put("target", e.target());
+                em.put("condition", e.condition());
+                em.put("conditional", e.isConditional());
+                return em;
+            })
             .toList());
         return m;
     }

@@ -13,6 +13,7 @@ import com.gantang.tianshu.spring.config.props.WorkflowProperties;
 import com.gantang.tianshu.spring.service.GraphCatalog;
 import com.gantang.tianshu.spring.service.GraphDiscoveryLoader;
 import com.gantang.tianshu.spring.service.JpaCheckpointGateway;
+import com.gantang.tianshu.spring.controller.WorkflowController;
 import com.gantang.tianshu.spring.service.JpaCheckpointStore;
 import com.gantang.tianshu.storage.repository.GraphCheckpointRepository;
 import org.slf4j.Logger;
@@ -109,5 +110,17 @@ public class WorkflowConfiguration {
         discovery.loadInto(catalog);
         log.info("Workflow graphs registered (count={})", catalog.size());
         return discovery;
+    }
+
+    /** REST surface for listing graphs and starting / inspecting / resuming runs. */
+    @Bean
+    @ConditionalOnBean(GraphRunner.class)
+    @ConditionalOnMissingBean(WorkflowController.class)
+    public WorkflowController workflowController(
+            GraphRunner runner,
+            GraphCatalog catalog,
+            com.gantang.tianshu.spring.auth.CallerGuard guard,
+            CheckpointStore checkpointStore) {
+        return new WorkflowController(runner, catalog, guard, checkpointStore);
     }
 }

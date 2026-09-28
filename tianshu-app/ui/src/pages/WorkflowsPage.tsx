@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Button,
   Card,
@@ -17,13 +17,27 @@ import {
 import { PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons'
 import { api, getToken } from '../api'
 import { useApi, Loading, ErrBox, fmt, mono, OC } from '../ui'
+import GraphTopology, {
+  type NodeStatus,
+  type TopoEdge,
+  type TopoNode,
+} from '../components/GraphTopology'
+
+type DetailNode = { id: string; type: string; label?: string }
+type DetailEdge = {
+  source: string
+  target: string
+  condition?: string | null
+  conditional?: boolean
+}
 
 type GraphSummary = {
   name: string
   nodeCount: number
   edgeCount: number
   maxSteps: number
-  nodes?: { id: string; type: string }[]
+  nodes?: DetailNode[]
+  edges?: DetailEdge[]
 }
 
 type GraphRunResult = {
@@ -58,16 +72,36 @@ const STATUS_COLOR: Record<string, string> = {
   FAILED: 'red',
 }
 
-const NODE_COLOR: Record<string, string> = {
-  AGENT: 'geekblue',
-  TOOL: 'blue',
-  SKILL: 'purple',
-  DECISION: 'cyan',
-  PARALLEL: 'gold',
-  PAUSE: 'orange',
-  APPROVAL: 'magenta',
-  PASS: 'default',
-  CUSTOM: 'default',
+function Legend({ compact }: { compact?: boolean }) {
+  const items: [string, string][] = [
+    ['当前执行', OC.accent],
+    ['已完成', '#7fd0a4'],
+    ['暂停等待', '#e6b66a'],
+    ['失败', '#e88585'],
+  ]
+  return (
+    <Space size={14} style={{ marginTop: compact ? 8 : 10, width: '100%' }}>
+      {items.map(([label, color]) => (
+        <Space key={label} size={6}>
+          <span
+            style={{
+              display: 'inline-block',
+              width: 10,
+              height: 10,
+              borderRadius: 3,
+              border: `1.5px solid ${color}`,
+              background: OC.card,
+            }}
+          />
+          <span style={{ color: OC.muted, fontSize: 12 }}>{label}</span>
+        </Space>
+      ))}
+      <Space size={6}>
+        <span style={{ color: '#d4a05a', fontSize: 14, lineHeight: 1 }}>- -</span>
+        <span style={{ color: OC.muted, fontSize: 12 }}>条件边</span>
+      </Space>
+    </Space>
+  )
 }
 
 function asJson(v: unknown): string {
@@ -94,8 +128,42 @@ export default function WorkflowsPage() {
   const [events, setEvents] = useState<string[]>([])
 
   const [cp, setCp] = useState<Checkpoint | null>(null)
+  const [cpGraph, setCpGraph] = useState<GraphSummary | null>(null)
   const [resumeText, setResumeText] = useState('')
   const [resuming, setResuming] = useState(false)
+
+  // Live node highlighting for the topology view.
+  const [hl, setHl] = useState<Record<string, NodeStatus>>({})
+  const cpNodeRef = useRef<string | null>(null)
+
+  const resetHighlight = () => {
+    cpNodeRef.current = null
+    setHl({})
+  }
+
+  const applyEvent = (type: string, nodeId?: string) => {
+    if (!nodeId) return
+    setHl((prev) => {
+      const next: Record<string, NodeStatus> = { ...prev }
+      if (type === 'NODE_START') {
+        if (cpNodeRef.current) next[cpNodeRef.current] = 'done'
+        cpNodeRef.current = nodeId
+        next[nodeId] = 'active'
+      } else if (type === 'NODE_END') {
+        next[nodeId] = 'done'
+        if (cpNodeRef.current === nodeId) cpNodeRef.current = null
+      } else if (type === 'PAUSED') {
+        next[nodeId] = 'paused'
+        cpNodeRef.current = nodeId
+      } else if (type === 'ERROR') {
+        if (cpNodeRef.current) next[cpNodeRef.current] = 'failed'
+      } else if (type === 'COMPLETED') {
+        if (cpNodeRef.current) next[cpNodeRef.current] = 'done'
+        cpNodeRef.current = null
+      }
+      return next
+    })
+  }
 
   const openDetail = async (g: GraphSummary) => {
     try {
@@ -106,11 +174,19 @@ export default function WorkflowsPage() {
     }
   }
 
-  const openRun = (g: GraphSummary) => {
-    setTarget(g)
+  const openRun = async (g: GraphSummary) => {
     setResult(null)
     setEvents([])
+    resetHighlight()
     runForm.resetFields()
+    try {
+      const full = await api.get<GraphSummary>(
+        `/api/v1/workflows/${encodeURIComponent(g.name)}`,
+      )
+      setTarget(full)
+    } catch (e: any) {
+      message.error(e.message)
+    }
   }
 
   const collectSeed = (): { input?: unknown; variables?: Record<string, unknown> } => {
@@ -129,6 +205,7 @@ export default function WorkflowsPage() {
     setRunning(true)
     setResult(null)
     setEvents([])
+    resetHighlight()
     try {
       const seed = collectSeed()
       if (live) {
@@ -191,6 +268,7 @@ export default function WorkflowsPage() {
           const detail = payload.message ? ` — ${payload.message}` : ''
           const node = payload.nodeId ? ` [${payload.nodeId}]` : ''
           setEvents((ev) => [...ev, `${event}${node}${detail}`])
+          applyEvent(payload.type, payload.nodeId)
         }
         if (payload.type === 'COMPLETED' || payload.type === 'ERROR' || payload.type === 'PAUSED') {
           final = payloadToResult(payload)
@@ -202,10 +280,14 @@ export default function WorkflowsPage() {
 
   const openCheckpoint = async (r: RunSummary) => {
     try {
-      const full = await api.get<Checkpoint>(
-        `/api/v1/workflows/runs/${encodeURIComponent(r.runId)}`,
-      )
+      const [full, graphDetail] = await Promise.all([
+        api.get<Checkpoint>(`/api/v1/workflows/runs/${encodeURIComponent(r.runId)}`),
+        api.get<GraphSummary>(`/api/v1/workflows/${encodeURIComponent(r.graphName)}`),
+      ])
       setCp(full)
+      setCpGraph(graphDetail)
+      cpNodeRef.current = full.nodeId
+      setHl({ [full.nodeId]: 'paused' })
       setResumeText('')
     } catch (e: any) {
       message.error(e.message)
@@ -216,6 +298,7 @@ export default function WorkflowsPage() {
     if (!cp) return
     setResuming(true)
     setEvents([])
+    resetHighlight()
     try {
       const payload = resumeText.trim() ? safeParse(resumeText.trim()) : null
       if (live) {
@@ -374,7 +457,7 @@ export default function WorkflowsPage() {
         open={!!detail}
         onCancel={() => setDetail(null)}
         footer={null}
-        width={680}
+        width={860}
       >
         {detail && (
           <>
@@ -383,13 +466,11 @@ export default function WorkflowsPage() {
               <Descriptions.Item label="边">{detail.edgeCount}</Descriptions.Item>
               <Descriptions.Item label="步数上限">{detail.maxSteps}</Descriptions.Item>
             </Descriptions>
-            <Space size={[6, 6]} wrap>
-              {(detail.nodes || []).map((n) => (
-                <Tag key={n.id} color={NODE_COLOR[n.type] || 'default'}>
-                  <span style={mono}>{n.id}</span> · {n.type}
-                </Tag>
-              ))}
-            </Space>
+            <GraphTopology
+              nodes={(detail.nodes || []) as TopoNode[]}
+              edges={(detail.edges || []) as TopoEdge[]}
+            />
+            <Legend />
           </>
         )}
       </Modal>
@@ -405,6 +486,14 @@ export default function WorkflowsPage() {
         cancelText="取消"
         width={700}
       >
+        {target && (
+          <GraphTopology
+            nodes={(target.nodes || []) as TopoNode[]}
+            edges={(target.edges || []) as TopoEdge[]}
+            statusById={live ? hl : undefined}
+            height={240}
+          />
+        )}
         <Form form={runForm} layout="vertical" style={{ marginTop: 8 }}>
           <Form.Item name="input" label="初始输入（input，原始文本或 JSON）">
             <Input.TextArea rows={2} style={mono} placeholder="hello workflow" />
@@ -425,12 +514,27 @@ export default function WorkflowsPage() {
       <Modal
         title={cp ? `暂停运行 · ${cp.graphName}` : ''}
         open={!!cp}
-        onCancel={() => setCp(null)}
+        onCancel={() => {
+          setCp(null)
+          setCpGraph(null)
+          resetHighlight()
+        }}
         footer={null}
-        width={720}
+        width={780}
       >
         {cp && (
           <>
+            {cpGraph && (
+              <>
+                <GraphTopology
+                  nodes={(cpGraph.nodes || []) as TopoNode[]}
+                  edges={(cpGraph.edges || []) as TopoEdge[]}
+                  statusById={live ? hl : { [cp.nodeId]: 'paused' }}
+                  height={230}
+                />
+                <Legend compact />
+              </>
+            )}
             <Descriptions size="small" column={2} style={{ marginBottom: 12 }}>
               <Descriptions.Item label="Run ID">
                 <span style={mono}>{cp.runId}</span>
