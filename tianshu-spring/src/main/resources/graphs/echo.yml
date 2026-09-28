@@ -1,0 +1,14 @@
+name: echo
+description: Minimal linear graph — one agent node that answers the input.
+maxSteps: 10
+nodes:
+  - id: answer
+    type: agent
+    label: Answer
+    query: "请简要回答：${input}"
+    outputVar: answer
+edges:
+  - from: __start__
+    to: answer
+  - from: answer
+    to: __end__

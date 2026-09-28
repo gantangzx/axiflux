@@ -41,6 +41,27 @@ public final class DefaultGraphRunner implements GraphRunner {
         registerDefaults();
     }
 
+    /**
+     * Convenience assembly for hosts (such as the Spring layer) that cannot see the
+     * package-private {@link GraphServices} type. Every collaborator may be null; a
+     * graph only needs the services its nodes actually use.
+     */
+    public DefaultGraphRunner(
+            com.gantang.tianshu.api.agent.Agent agent,
+            com.gantang.tianshu.api.tool.ToolRegistry toolRegistry,
+            com.gantang.tianshu.api.skill.SkillRegistry skillRegistry,
+            com.gantang.tianshu.api.skill.SkillExecutor skillExecutor,
+            com.gantang.tianshu.api.agent.ApprovalManager approvalManager,
+            CheckpointStore checkpointStore) {
+        this(GraphServices.builder()
+            .agent(agent)
+            .toolRegistry(toolRegistry)
+            .skillRegistry(skillRegistry)
+            .skillExecutor(skillExecutor)
+            .approvalManager(approvalManager)
+            .build(), checkpointStore);
+    }
+
     private void registerDefaults() {
         handlers.put(NodeKind.AGENT, new AgentNodeHandler());
         handlers.put(NodeKind.TOOL, new ToolNodeHandler());

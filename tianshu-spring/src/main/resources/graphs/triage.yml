@@ -1,0 +1,27 @@
+name: triage
+description: Conditional routing with a human review pause.
+maxSteps: 20
+nodes:
+  - id: draft
+    type: agent
+    label: Draft answer
+    query: "针对下面的问题给出一个简短的初步答复：${input}"
+    outputVar: draft
+  - id: review
+    type: pause
+    label: Wait for human review
+    waitFor: humanReview
+  - id: finalize
+    type: agent
+    label: Finalize
+    query: "结合人工审核意见：${humanReview}，给出最终答复。原始问题：${input}"
+    outputVar: final
+edges:
+  - from: __start__
+    to: draft
+  - from: draft
+    to: review
+  - from: review
+    to: finalize
+  - from: finalize
+    to: __end__

@@ -7,6 +7,7 @@ com.gantang.tianshu.spring.config.WebFluxConfig
 com.gantang.tianshu.spring.config.BuiltInToolsConfiguration
 com.gantang.tianshu.spring.config.TianshuWebConfiguration
 com.gantang.tianshu.spring.config.SkillConfiguration
+com.gantang.tianshu.spring.config.WorkflowConfiguration
 com.gantang.tianshu.spring.config.TaskSchedulerConfiguration
 com.gantang.tianshu.spring.config.ToolProvidersConfiguration
 com.gantang.tianshu.spring.config.OpenApiConfig
