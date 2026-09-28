@@ -3,7 +3,7 @@ import { Modal } from 'antd'
 import { BranchesOutlined, RightOutlined, RobotOutlined } from '@ant-design/icons'
 import { useChat, sessionLabel } from './chat'
 import { useAuth } from './auth'
-import { NAV_SECTIONS, NAV_META } from './nav'
+import { NAV_SECTIONS, NAV_META, STANDALONE_PAGES } from './nav'
 import { OC } from './ui'
 
 export type CommandKind = 'page' | 'session' | 'agent'
@@ -17,17 +17,29 @@ export type CommandItem = {
   requiredScope?: string
 }
 
-const PAGE_INDEX: CommandItem[] = NAV_SECTIONS.flatMap((s) =>
-  s.items.map<CommandItem>((it) => ({
+const PAGE_INDEX: CommandItem[] = [
+  ...NAV_SECTIONS.flatMap((s) =>
+    s.items.map<CommandItem>((it) => ({
+      kind: 'page',
+      key: it.key,
+      title: it.label,
+      sub: it.desc,
+      icon: it.icon,
+      group: s.label,
+      requiredScope: it.requiredScope,
+    })),
+  ),
+  // Standalone center pages (reached from contextual menus) are searchable too.
+  ...STANDALONE_PAGES.map<CommandItem>((p) => ({
     kind: 'page',
-    key: it.key,
-    title: it.label,
-    sub: it.desc,
-    icon: it.icon,
-    group: s.label,
-    requiredScope: it.requiredScope,
+    key: p.key,
+    title: p.label,
+    sub: p.desc,
+    icon: p.icon,
+    group: '账户',
+    requiredScope: p.requiredScope,
   })),
-)
+]
 
 const AGENT_ICON = (emoji: string) => (
   <span

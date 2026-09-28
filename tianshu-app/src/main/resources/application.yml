@@ -21,12 +21,14 @@ spring:
   # The app boots with in-memory sessions + no-op memory out of the box.
   # Uncomment and configure the blocks below to enable persistence.
 
-  # PostgreSQL (needed only for JPA sessions or vector.provider=pgvector)
+  # PostgreSQL is OPTIONAL. The app boots fully without it (in-memory sessions).
+  # Set PG_URL (or SPRING_DATASOURCE_URL) to enable JPA persistence; the
+  # DataSource/JPA/Flyway auto-configurations back off while the URL is empty.
   datasource:
-     url: ${PG_URL:jdbc:postgresql://localhost:5432/tianshu}
-     username: ${PG_USER:postgres}
-     password: ${PG_PASSWORD:}
-     driver-class-name: org.postgresql.Driver
+    url: ${PG_URL:}
+    username: ${PG_USER:postgres}
+    password: ${PG_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
 
   # Redis. Needed for redis sessions and distributed scheduler locks, and it also
   # switches the following per-instance state to shared state automatically (no extra
@@ -37,17 +39,22 @@ spring:
   #   - sub-agent cancel: POST /subagents/tasks/{id}/cancel reaches the owning
   #     instance over pub/sub instead of answering 404 while the task keeps running
   # Every one of these degrades to local behaviour if Redis is unreachable.
+  # Redis is OPTIONAL: leave REDIS_HOST unset (the default here is empty) and the
+  # Redis auto-configuration backs off entirely, so no connection factory is
+  # created and every feature uses process-local state.
   data:
-     redis:
-       host: ${REDIS_HOST:localhost}
-       port: ${REDIS_PORT:6379}
-       password: ${REDIS_PASSWORD:}
+    redis:
+      host: ${REDIS_HOST:}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
-  # Flyway (PostgreSQL schema migrations; needs a datasource)
+  # Flyway runs only when a DataSource exists (see FlywayMigrationConfiguration,
+  # which is @ConditionalOnBean(DataSource)). With no PG_URL there is no
+  # DataSource, so no migration is attempted.
   flyway:
-     enabled: true
-     locations: classpath:db/migration
-     baseline-on-migrate: true
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
   jpa:
      hibernate:
@@ -281,9 +288,11 @@ tianshu:
     #     base-url: http://localhost:8000/v1
     #     model: meta-llama/Llama-3-8b-Instruct
 
-  # Session storage: redis | jpa | (unset -> in-memory fallback)
+  # Session storage: auto | jpa | redis | inmemory.
+  # "auto" (default) picks JPA when PG_URL is set, Redis when REDIS_HOST is set,
+  # and falls back to in-memory when neither is present.
   session:
-    provider: ${SESSION_PROVIDER:jpa}
+    provider: ${SESSION_PROVIDER:auto}
 
   # Long-term memory: qdrant | pgvector | milvus | none
   # qdrant is the default but lazily connected; use "none" to fully disable.

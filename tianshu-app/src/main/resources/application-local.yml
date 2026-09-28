@@ -12,13 +12,16 @@
 # ============================================================================
 
 spring:
+  # PostgreSQL / Redis are OPTIONAL even in local dev: leave PG_URL / REDIS_HOST
+  # unset to run with in-memory sessions and process-local state. Point them at
+  # localhost (e.g. via docker-compose.yml) when you want persistence.
   datasource:
-    url: ${PG_URL:jdbc:postgresql://localhost:5432/tianshu}
+    url: ${PG_URL:}
     username: ${PG_USER:postgres}
     password: ${PG_PASSWORD:}
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST:}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
@@ -50,9 +53,10 @@ tianshu:
     quota:
       enabled: true
 
-  # 会话落库 PostgreSQL（需本地 PG；不想起基础设施时设 SESSION_PROVIDER=memory）
+  # 会话存储默认 auto：配了 PG_URL 走 JPA、配了 REDIS_HOST 走 Redis，
+  # 都没配则用进程内内存（重启不保留）。可用 SESSION_PROVIDER 显式指定。
   session:
-    provider: ${SESSION_PROVIDER:jpa}
+    provider: ${SESSION_PROVIDER:auto}
 
   # 长期记忆默认关闭（开箱即用）。本地 PG 已装 pgvector 扩展时，在 env 设
   # VECTOR_PROVIDER=pgvector 即可启用 ARK 多模态向量（2048 维）。

@@ -23,6 +23,7 @@ import {
   AppstoreOutlined,
   KeyOutlined,
   SafetyCertificateOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons'
 
 export type NavItem = {
@@ -147,6 +148,34 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 ]
 
+/**
+ * Standalone "center" pages.
+ *
+ * These have their own top-level route but intentionally do NOT appear in a
+ * sidebar section — they are reached from contextual affordances (e.g. the
+ * first item of the account dropdown). Modelled as data so adding another
+ * center page requires no routing/sidebar change.
+ */
+export type StandalonePage = {
+  key: string
+  label: string
+  desc: string
+  icon: ReactNode
+  /** Sidebar section whose rail item stays highlighted while on the page. */
+  section: string
+  requiredScope?: string
+}
+
+export const STANDALONE_PAGES: StandalonePage[] = [
+  {
+    key: 'profile',
+    label: '个人中心',
+    desc: '身份信息、显示名与账号安全',
+    icon: <IdcardOutlined />,
+    section: 'account',
+  },
+]
+
 export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items)
 
 export const NAV_META: Record<string, { title: string; desc: string; icon: ReactNode }> =
@@ -155,14 +184,22 @@ export const NAV_META: Record<string, { title: string; desc: string; icon: React
       for (const it of s.items) acc[it.key] = { title: it.label, desc: it.desc, icon: it.icon }
       return acc
     },
-    {} as Record<string, { title: string; desc: string; icon: ReactNode }>,
+    STANDALONE_PAGES.reduce(
+      (acc, p) => {
+        acc[p.key] = { title: p.label, desc: p.desc, icon: p.icon }
+        return acc
+      },
+      {} as Record<string, { title: string; desc: string; icon: ReactNode }>,
+    ),
   )
 
 export const sectionMeta = (key: string): NavSection | undefined =>
   NAV_SECTIONS.find((s) => s.key === key)
 
 /** 页面 → 所属分区（用于图标轨高亮同步）；对话页恒定落在 chat 分区。 */
-export const sectionOfPage = (p: string): string =>
-  p === 'chat'
-    ? 'chat'
-    : NAV_SECTIONS.find((s) => s.items.some((it) => it.key === p))?.key ?? 'workbench'
+export const sectionOfPage = (p: string): string => {
+  if (p === 'chat') return 'chat'
+  const standalone = STANDALONE_PAGES.find((sp) => sp.key === p)
+  if (standalone) return standalone.section
+  return NAV_SECTIONS.find((s) => s.items.some((it) => it.key === p))?.key ?? 'workbench'
+}

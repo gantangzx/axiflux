@@ -28,6 +28,7 @@ const SecurityPage = lazy(() => import('./pages/SecurityPage'))
 const AuditPage = lazy(() => import('./pages/AuditPage'))
 const ModelsPage = lazy(() => import('./pages/ModelsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const ProfileCenterPage = lazy(() => import('./pages/ProfileCenterPage'))
 
 // Commercial pages. On the community build a Vite alias redirects this module
 // to ./commercial-stub, so no commercial page chunk is emitted.
@@ -128,6 +129,8 @@ function Shell() {
         return <AuditPage />
       case 'models':
         return <ModelsPage />
+      case 'profile':
+        return <ProfileCenterPage />
       case 'settings':
         return <SettingsPage />
       default:

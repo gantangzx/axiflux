@@ -8,6 +8,7 @@ import {
   InfoCircleOutlined,
   UserOutlined,
   PlusOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons'
 import { OC, SidebarToggle } from './ui'
 import { getToken } from './api'
@@ -180,6 +181,8 @@ function AccountMenu({
   const isAuthed = status === 'authed' && !!user
   const menu: MenuProps = {
     items: [
+      // First item: the standalone 个人中心 page (works in every deployment).
+      { key: 'profile', icon: <IdcardOutlined />, label: '个人中心' },
       ...(isAuthed
         ? [{ key: 'whoami', icon: <UserOutlined />, label: user!.username, disabled: true }]
         : []),
