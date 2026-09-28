@@ -118,23 +118,61 @@ public final class DefaultGraphRunner implements GraphRunner {
     @Override
     public Flux<GraphEvent> resumeStream(String runId, Object payload) {
         return prepareResume(runId, payload)
-            .flatMapMany(ctx -> Flux.concat(
-                Flux.just(new GraphEvent(GraphEvent.Type.RESUMED, ctx.nodeId(), null)),
-                driveFlux(ctx.graph(), ctx.runtime(), ctx.state(), ctx.next(), 0)));
+            .flatMapMany(ctx -> {
+                java.util.concurrent.atomic.AtomicBoolean repaused =
+                    new java.util.concurrent.atomic.AtomicBoolean();
+                Flux<GraphEvent> events = Flux.concat(
+                    Flux.just(new GraphEvent(GraphEvent.Type.RESUMED, ctx.nodeId(), null)),
+                    driveFlux(ctx.graph(), ctx.runtime(), ctx.state(), ctx.next(), 0))
+                    .doOnNext(e -> {
+                        if (e.type() == GraphEvent.Type.PAUSED) {
+                            repaused.set(true);
+                        }
+                    });
+                // Remove the claimed row only on completion; a re-pause already
+                // replaced it with a fresh PAUSED row.
+                Flux<GraphEvent> tail = Flux.defer(() -> repaused.get()
+                    ? Flux.<GraphEvent>empty()
+                    : removeCheckpoint(runId).then(Mono.<GraphEvent>empty()).flux());
+                return Flux.concat(events, tail)
+                    .onErrorResume(error -> failResume(runId, ctx.checkpoint(), error)
+                        .then(Mono.error(error)));
+            });
     }
 
     @Override
     public Mono<GraphRunResult> resume(String runId, Object payload) {
         return prepareResume(runId, payload)
             .flatMap(ctx -> drive(ctx.graph(), ctx.runtime(), ctx.state(), ctx.next(), 0)
-                .map(term -> new GraphRunResult(runId, term.status(), term.state())));
+                .flatMap(term -> finishResume(runId, term))
+                .map(term -> new GraphRunResult(runId, term.status(), term.state()))
+                .onErrorResume(error -> failResume(runId, ctx.checkpoint(), error)
+                    .then(Mono.error(error))));
+    }
+
+    /** Remove the claimed row only when the resumed run actually completed. */
+    private Mono<Terminal> finishResume(String runId, Terminal term) {
+        if (term.status() == GraphRunResult.Status.COMPLETED) {
+            return checkpointStore.remove(runId).thenReturn(term);
+        }
+        return Mono.just(term);
+    }
+
+    private Mono<Void> removeCheckpoint(String runId) {
+        return checkpointStore.remove(runId).onErrorResume(e -> Mono.empty());
     }
 
     private record ResumeContext(StateGraph graph, NodeRuntime runtime,
-                                 GraphState state, String nodeId, String next) {}
+                                 GraphState state, String nodeId, String next,
+                                 Checkpoint checkpoint) {}
 
+    /**
+     * Atomically claim the paused run (PAUSED → RESUMING), then rebuild the safe base
+     * context and merge the payload. A missing or already-claimed run yields the
+     * same "no paused run" error so concurrent resumes drive the run at most once.
+     */
     private Mono<ResumeContext> prepareResume(String runId, Object payload) {
-        return checkpointStore.load(runId)
+        return checkpointStore.claim(runId)
             .switchIfEmpty(Mono.error(new IllegalStateException("no paused run: " + runId)))
             .flatMap(checkpoint -> GraphDefinitions.from(checkpoint.graphName())
                 .map(Mono::just)
@@ -145,10 +183,18 @@ public final class DefaultGraphRunner implements GraphRunner {
                     AgentContext base = checkpoint.toBaseContext();
                     NodeRuntime runtime = newRuntime(graph, runId, base);
                     String next = resolveRouting(graph, checkpoint.nodeId(), state);
-                    return checkpointStore.remove(runId)
-                        .thenReturn(new ResumeContext(graph, runtime, state,
-                            checkpoint.nodeId(), next));
+                    return Mono.just(new ResumeContext(graph, runtime, state,
+                        checkpoint.nodeId(), next, checkpoint));
                 }));
+    }
+
+    /** Put a failed resume back so the run stays PAUSED and can be retried. */
+    private Mono<Void> failResume(String runId, Checkpoint original, Throwable error) {
+        return checkpointStore.release(original)
+            .onErrorResume(releaseError -> {
+                // Best effort; swallow so the original failure is what propagates.
+                return Mono.empty();
+            });
     }
 
     // === core recursion: terminal form ===

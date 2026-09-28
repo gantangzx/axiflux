@@ -15,7 +15,10 @@ import com.gantang.tianshu.spring.controller.WorkflowController.ResumeRequest;
 import com.gantang.tianshu.spring.controller.WorkflowController.RunRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -131,6 +134,68 @@ class WorkflowControllerTest {
         StepVerifier.create(controller.resume("no-such-run", new ResumeRequest("x"), "alice", ""))
             .expectErrorSatisfies(WorkflowControllerTest::assert404)
             .verify();
+    }
+
+    @Test
+    void listRunsOnlyShowsOwnedOrWildcard() {
+        controller.run("review-flow", new RunRequest(null, null, null, null), "alice", "").block();
+
+        // Alice sees her own paused run.
+        StepVerifier.create(controller.listRuns("alice", ""))
+            .assertNext(resp -> {
+                assertEquals(1, resp.data().size());
+                assertEquals("review-flow", resp.data().get(0).get("graphName"));
+                assertEquals("humanReview", resp.data().get(0).get("reason"));
+            })
+            .verifyComplete();
+
+        // Bob (no wildcard) sees nothing of alice's runs.
+        StepVerifier.create(controller.listRuns("bob", ""))
+            .assertNext(resp -> assertEquals(0, resp.data().size()))
+            .verifyComplete();
+
+        // Wildcard caller sees all.
+        StepVerifier.create(controller.listRuns("console", "*"))
+            .assertNext(resp -> assertEquals(1, resp.data().size()))
+            .verifyComplete();
+    }
+
+    @Test
+    void failedResumeReleasesCheckpointForRetry() {
+        catalog.register(failAfterPauseGraph());
+        GraphRunResult paused = controller
+            .run("fail-flow", new RunRequest(null, null, null, null), "alice", "")
+            .block().data();
+        String runId = paused.runId();
+
+        // resume drives the failing CUSTOM node, which fails the run.
+        StepVerifier.create(controller.resume(runId, new ResumeRequest("x"), "alice", ""))
+            .expectErrorSatisfies(e -> assertInstanceOf(
+                com.gantang.tianshu.impl.workflow.GraphExecutionException.class, e))
+            .verify();
+
+        // Claim released: the paused run is visible again and resumable.
+        StepVerifier.create(controller.getRun(runId, "alice", ""))
+            .assertNext(resp -> assertEquals("review", resp.data().nodeId()))
+            .verifyComplete();
+    }
+
+    /** review(pause) → boom(CUSTOM, always errors) → end. */
+    private static StateGraph failAfterPauseGraph() {
+        NodeSpec review = NodeSpec.builder("review", NodeKind.PAUSE).waitFor("humanReview").build();
+        com.gantang.tianshu.api.workflow.GraphNode failing =
+            (state, ctx) -> Mono.error(new IllegalStateException("boom"));
+        NodeSpec boom = NodeSpec.builder("boom", NodeKind.CUSTOM)
+            .metadata(Map.of("__graphNode__", failing))
+            .build();
+        return StateGraph.builder()
+            .name("fail-flow")
+            .addNode(review)
+            .addNode(boom)
+            .edge(StateGraph.START, "review")
+            .edge("review", "boom")
+            .edge("boom", StateGraph.END)
+            .build();
     }
 
     private static void assert404(Throwable e) {

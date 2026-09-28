@@ -41,6 +41,7 @@ import java.util.Map;
  * GET  /api/v1/workflows/{name}                — describe one graph
  * POST /api/v1/workflows/{name}/runs           — start a run (terminal result)
  * POST /api/v1/workflows/{name}/runs/stream    — start a run (SSE event stream)
+ * GET  /api/v1/workflows/runs                   — list paused runs (own / all for wildcard)
  * GET  /api/v1/workflows/runs/{runId}          — inspect a paused run checkpoint
  * POST /api/v1/workflows/runs/{runId}/resume   — resume a paused run (terminal)
  * POST /api/v1/workflows/runs/{runId}/resume/stream — resume (SSE)
@@ -113,6 +114,28 @@ public class WorkflowController {
             .subscribeOn(Schedulers.boundedElastic())
             .flatMapMany(ctx -> startStream(graph, request, ctx))
             .map(WorkflowController::toSse);
+    }
+
+    // ===== List runs =====
+
+    /**
+     * List paused runs visible to the caller: the caller's own runs by default, or
+     * every run for a wildcard caller. Only paused (awaiting resume) runs are shown;
+     * completed runs are not retained.
+     */
+    @GetMapping("/runs")
+    public Mono<ApiResponse<List<Map<String, Object>>>> listRuns(
+            @RequestHeader(value = AuthWebFilter.H_USER, required = false) String authUser,
+            @RequestHeader(value = AuthWebFilter.H_SCOPES, required = false) String authScopes) {
+        boolean wildcard = com.gantang.tianshu.spring.auth.CallerAuthorization
+            .isWildcard(authScopes);
+        return checkpointStore
+            .list(com.gantang.tianshu.api.workflow.CheckpointStore.Status.PAUSED)
+            .map(checkpoints -> ApiResponse.ok(checkpoints.stream()
+                .filter(cp -> wildcard || com.gantang.tianshu.spring.auth.CallerAuthorization
+                    .canAccess(authUser, cp.userId(), authScopes))
+                .map(WorkflowController::runSummary)
+                .toList()));
     }
 
     // ===== Inspect paused run =====
@@ -242,6 +265,18 @@ public class WorkflowController {
         m.put("nodes", graph.nodes().values().stream()
             .map(n -> Map.of("id", n.id(), "type", String.valueOf(n.kind())))
             .toList());
+        return m;
+    }
+
+    private static Map<String, Object> runSummary(Checkpoint cp) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("runId", cp.runId());
+        m.put("graphName", cp.graphName());
+        m.put("nodeId", cp.nodeId());
+        m.put("userId", cp.userId());
+        m.put("sessionId", cp.sessionId());
+        m.put("reason", cp.reason());
+        m.put("createdAt", cp.createdAt());
         return m;
     }
 
