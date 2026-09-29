@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import '@xyflow/react/dist/style.css'
 import {
   addEdge,
   Background,
