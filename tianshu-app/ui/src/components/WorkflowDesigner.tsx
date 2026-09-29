@@ -1,450 +1,534 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  addEdge,
+  Background,
+  BackgroundVariant,
+  Connection,
+  Controls,
+  Edge,
+  MiniMap,
+  Node,
   ReactFlow,
   ReactFlowProvider,
-  Background,
-  Controls,
-  MiniMap,
-  addEdge,
-  useNodesState,
-  useEdgesState,
-  Handle,
-  Position,
   MarkerType,
-  type Node,
-  type Edge,
-  type Connection,
-  type NodeProps,
-  type NodeTypes,
+  useEdgesState,
+  useNodesState,
+  useReactFlow,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
-import { OC } from '../ui'
-import type { WorkflowDef } from '../workflow-types'
+import {
+  Button,
+  Dropdown,
+  Empty,
+  Input,
+  Modal,
+  Space,
+  Tag,
+  Tooltip,
+  message,
+} from 'antd'
+import {
+  BranchesOutlined,
+  CheckOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  HistoryOutlined,
+  LayoutOutlined,
+  PauseOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+  RobotOutlined,
+  ShareAltOutlined,
+  StopOutlined,
+  ThunderboltOutlined,
+  ToolOutlined,
+  UndoOutlined,
+  RedoOutlined,
+  UpOutlined,
+  UploadOutlined,
+  ExclamationCircleFilled,
+} from '@ant-design/icons'
+import type { WDef, WNode } from '../workflow-types'
+import { NodeForm } from './NodeForm'
+import { NodeData, NodeStatus, useWorkflowActions } from './useWorkflowActions'
 
-// Reserved terminals.
-const START = '__start__'
-const END = '__end__'
+const NODE_TYPES = ['AGENT', 'TOOL', 'CONDITION', 'PARALLEL', 'JOIN', 'PAUSE', 'APPROVAL', 'END'] as const
+type NodeType = (typeof NODE_TYPES)[number]
+const ADVANCED = new Set(['PARALLEL', 'APPROVAL', 'PAUSE'])
 
-const NODE_KINDS = [
-  { value: 'AGENT', label: 'Agent 节点' },
-  { value: 'TOOL', label: '工具调用' },
-  { value: 'SKILL', label: '技能' },
-  { value: 'DECISION', label: '条件决策' },
-  { value: 'PARALLEL', label: '并行' },
-  { value: 'PAUSE', label: '暂停' },
-  { value: 'APPROVAL', label: '审批' },
-  { value: 'PASS', label: '透传' },
-] as const
-
-type DesignerNodeData = Record<string, unknown> & {
-  label: string
-  kind: string
-  terminal?: 'start' | 'end'
+const STATUS_COLORS: Record<NodeStatus, { border: string; glow?: string }> = {
+  idle: { border: '#2a2e3a' },
+  running: { border: '#ff5c5c', glow: '0 0 0 3px rgba(255,92,92,.35)' },
+  ok: { border: '#3fbf7f', glow: '0 0 0 3px rgba(63,191,127,.30)' },
+  error: { border: '#ff4d4f', glow: '0 0 0 3px rgba(255,77,79,.35)' },
 }
 
-/** Rendered graph node: colored by kind, with connect handles. */
-function DesignerNode({ data }: NodeProps<Node<DesignerNodeData>>) {
-  if (data.terminal) {
-    const color = data.terminal === 'start' ? '#7fd0a4' : OC.accent
-    return (
-      <div
-        style={{
-          borderRadius: 20,
-          padding: '6px 16px',
-          fontSize: 12,
-          fontWeight: 600,
-          color: OC.textStrong,
-          background: OC.popover,
-          border: `1.5px solid ${color}`,
-        }}
-      >
-        {data.terminal === 'start' ? '开始' : '结束'}
-        {data.terminal === 'start' ? (
-          <Handle type="source" position={Position.Right} />
-        ) : (
-          <Handle type="target" position={Position.Left} />
-        )}
-      </div>
-    )
+export const nodeTypeIcon = (t: string) => {
+  if (t === 'TOOL') return <ToolOutlined />
+  if (t === 'CONDITION') return <BranchesOutlined />
+  if (t === 'PARALLEL') return <ShareAltOutlined />
+  if (t === 'PAUSE') return <PauseOutlined />
+  if (t === 'APPROVAL') return <ExclamationCircleFilled />
+  if (t === 'END') return <StopOutlined />
+  return <RobotOutlined />
+}
+
+function nodeVisual(raw: WNode): Node<NodeData> {
+  return {
+    id: raw.id,
+    type: 'workflowNode',
+    position: { x: raw.x ?? 0, y: raw.y ?? 0 },
+    data: { label: raw.label || raw.id, nodeType: raw.type, raw, status: 'idle' },
+    style: {
+      padding: '8px 12px',
+      borderRadius: 8,
+      border: '1px solid #2a2e3a',
+      background: '#191c24',
+      color: '#f4f4f5',
+      minWidth: 130,
+    },
   }
-  return (
-    <div
-      style={{
-        borderRadius: 8,
-        padding: '8px 12px',
-        minWidth: 120,
-        fontSize: 12.5,
-        color: OC.textStrong,
-        background: OC.popover,
-        border: `1.5px solid ${OC.borderStrong}`,
-      }}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div style={{ fontWeight: 600, marginBottom: 2 }}>{data.label}</div>
-      <div style={{ color: OC.muted, fontSize: 11 }}>{String(data.kind)}</div>
-      <Handle type="source" position={Position.Right} />
-    </div>
-  )
 }
 
-const nodeTypes: NodeTypes = { dnode: DesignerNode }
-
-let idSeq = 1
-function nextId(kind: string) {
-  return `${kind.toLowerCase()}_${idSeq++}`
+function edgeVisual(e: WDef['edges'][number], i: number): Edge {
+  return {
+    id: `e${i}_${e.source}_${e.target}_${e.condition ?? ''}`,
+    source: e.source,
+    target: e.target,
+    label: e.condition,
+    data: { condition: e.condition },
+    markerEnd: { type: MarkerType.ArrowClosed, color: '#5a6072' },
+    style: { stroke: '#5a6072' },
+  }
 }
 
-export type WorkflowDesignerProps = {
-  initial: WorkflowDef
-  onChange?: (def: WorkflowDef) => void
-  height?: number
-}
-
-function Canvas({ initial, height = 520, onChange }: WorkflowDesignerProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<DesignerNodeData>>(toFlowNodes(initial))
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(toFlowEdges(initial))
+function DesignerInner({ definition, onChange, workflowName }: {
+  definition: WDef
+  onChange: (d: WDef) => void
+  workflowName?: string
+}) {
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<NodeData>>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const rf = useReactFlow()
+  const actions = useWorkflowActions(setNodes)
+
+  const historyRef = useRef<WNode[][]>([])
+  const futureRef = useRef<WNode[][]>([])
+  const [, bump] = useState(0)
+  const skipEmit = useRef(false)
+
+  const buildDef = useCallback((ns: Node<NodeData>[], es: Edge[]): WDef => ({
+    nodes: ns.map((n) => ({ ...(n.data.raw as WNode), x: n.position.x, y: n.position.y })),
+    edges: es.map((e) => ({
+      source: e.source,
+      target: e.target,
+      condition: (e.data?.condition as string) || undefined,
+    })),
+  }), [])
+
+  const applyDef = useCallback((def: WDef) => {
+    skipEmit.current = true
+    setNodes(def.nodes.map(nodeVisual))
+    setEdges(def.edges.map(edgeVisual))
+  }, [setNodes, setEdges])
+
+  const loadedKey = useRef('')
+  useEffect(() => {
+    const key = workflowName ?? '__unsaved__'
+    if (loadedKey.current === key) return
+    loadedKey.current = key
+    applyDef(definition)
+  }, [definition, workflowName, applyDef])
 
   useEffect(() => {
-    onChange?.(flowToDef(nodes, edges))
-  }, [nodes, edges, onChange])
+    if (skipEmit.current) {
+      skipEmit.current = false
+      return
+    }
+    onChange(buildDef(nodes, edges))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges])
 
-  const onConnect = useCallback(
-    (conn: Connection) =>
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...conn,
-            style: { stroke: OC.muted },
-            markerEnd: { type: MarkerType.ArrowClosed, color: OC.muted },
-          },
-          eds,
-        ),
-      ),
-    [setEdges],
-  )
+  const pushHistory = useCallback(() => {
+    historyRef.current.push(nodes.map((n) => ({ ...(n.data.raw as WNode) })))
+    if (historyRef.current.length > 100) historyRef.current.shift()
+    futureRef.current = []
+    bump((v) => v + 1)
+  }, [nodes])
 
-  const addNode = (kind: string) => {
-    const id = nextId(kind)
-    setNodes((ns) => [
-      ...ns,
-      {
-        id,
-        type: 'dnode',
-        position: { x: 220 + Math.random() * 120, y: 80 + Math.random() * 200 },
-        data: { label: NODE_KINDS.find((k) => k.value === kind)?.label ?? kind, kind },
-      },
-    ])
-    setSelectedId(id)
-  }
+  const onConnect = useCallback((conn: Connection) => {
+    pushHistory()
+    setEdges((es) => addEdge({ ...conn, markerEnd: { type: MarkerType.ArrowClosed } }, es))
+  }, [pushHistory, setEdges])
 
-  const selectedNode = nodes.find((n) => n.id === selectedId && !n.data.terminal) || null
+  const addNode = useCallback((type: NodeType) => {
+    pushHistory()
+    const raw: WNode = {
+      id: `node_${Date.now().toString(36)}`,
+      type,
+      label: type[0] + type.slice(1).toLowerCase(),
+      query: type === 'AGENT' ? '' : undefined,
+      outputVar: type === 'AGENT' || type === 'TOOL' ? 'result' : undefined,
+      x: 140 + Math.random() * 100,
+      y: 90 + nodes.length * 16,
+    }
+    setNodes((ns) => [...ns, nodeVisual(raw)])
+    setSelectedId(raw.id)
+  }, [pushHistory, nodes.length, setNodes])
 
-  const updateSelected = (patch: Partial<DesignerNodeData>) => {
-    if (!selectedNode) return
-    setNodes((ns) =>
-      ns.map((n) => (n.id === selectedNode.id ? { ...n, data: { ...n.data, ...patch } } : n)),
-    )
-  }
+  const duplicateNode = useCallback((raw: WNode) => {
+    pushHistory()
+    const copy: WNode = {
+      ...raw,
+      id: `node_${Date.now().toString(36)}`,
+      label: `${raw.label || raw.id} 副本`,
+      x: (raw.x ?? 0) + 44,
+      y: (raw.y ?? 0) + 44,
+    }
+    setNodes((ns) => [...ns, nodeVisual(copy)])
+    setSelectedId(copy.id)
+  }, [pushHistory, setNodes])
 
-  const removeSelected = () => {
-    if (!selectedNode) return
-    setNodes((ns) => ns.filter((n) => n.id !== selectedNode.id))
-    setEdges((es) => es.filter((e) => e.source !== selectedNode.id && e.target !== selectedNode.id))
+  const removeNode = useCallback((id: string) => {
+    pushHistory()
+    setNodes((ns) => ns.filter((n) => n.id !== id))
+    setEdges((es) => es.filter((e) => e.source !== id && e.target !== id))
     setSelectedId(null)
+  }, [pushHistory, setNodes, setEdges])
+
+  const updateNode = useCallback((patch: Partial<WNode>) => {
+    if (!selectedId) return
+    setNodes((ns) => ns.map((n) => {
+      if (n.id !== selectedId) return n
+      const raw = { ...(n.data.raw as WNode), ...patch }
+      return { ...n, data: { ...n.data, raw, label: raw.label } }
+    }))
+  }, [selectedId, setNodes])
+
+  const autoLayout = useCallback(() => {
+    pushHistory()
+    const indeg = new Map(nodes.map((n) => [n.id, 0]))
+    const adj = new Map(nodes.map((n) => [n.id, [] as string[]]))
+    edges.forEach((e) => {
+      if (indeg.has(e.target) && adj.has(e.source)) {
+        indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1)
+        adj.get(e.source)!.push(e.target)
+      }
+    })
+    const depth = new Map<string, number>()
+    const q: string[] = []
+    nodes.forEach((n) => {
+      if ((indeg.get(n.id) ?? 0) === 0) {
+        q.push(n.id)
+        depth.set(n.id, 0)
+      }
+    })
+    while (q.length) {
+      const cur = q.shift()!
+      for (const nx of adj.get(cur) ?? []) {
+        depth.set(nx, Math.max(depth.get(nx) ?? 0, (depth.get(cur) ?? 0) + 1))
+        indeg.set(nx, (indeg.get(nx) ?? 1) - 1)
+        if ((indeg.get(nx) ?? 0) === 0) q.push(nx)
+      }
+    }
+    const byCol = new Map<number, string[]>()
+    depth.forEach((d, id) => {
+      if (!byCol.has(d)) byCol.set(d, [])
+      byCol.get(d)!.push(id)
+    })
+    setNodes((ns) => ns.map((n) => {
+      const d = depth.get(n.id) ?? 0
+      const row = (byCol.get(d) ?? []).indexOf(n.id)
+      return { ...n, position: { x: 60 + d * 220, y: 60 + row * 110 } }
+    }))
+    setTimeout(() => rf.fitView({ padding: 0.2 }), 60)
+  }, [pushHistory, nodes, edges, setNodes, rf])
+
+  const restoreSnapshot = useCallback((snap: WNode[]) => {
+    const pos = new Map(nodes.map((n) => [n.id, n.position]))
+    const ids = new Set(snap.map((s) => s.id))
+    const merged = snap.map((s) => {
+      const p = pos.get(s.id)
+      return p ? { ...s, x: p.x, y: p.y } : s
+    })
+    const keptEdges = edges
+      .filter((e) => ids.has(e.source) && ids.has(e.target))
+      .map((e) => ({ source: e.source, target: e.target, condition: (e.data?.condition as string) || undefined }))
+    applyDef({ nodes: merged, edges: keptEdges })
+  }, [nodes, edges, applyDef])
+
+  const undo = useCallback(() => {
+    const snap = historyRef.current.pop()
+    if (!snap) return
+    futureRef.current.push(nodes.map((n) => ({ ...(n.data.raw as WNode) })))
+    restoreSnapshot(snap)
+    bump((v) => v + 1)
+  }, [nodes, restoreSnapshot])
+
+  const redo = useCallback(() => {
+    const snap = futureRef.current.pop()
+    if (!snap) return
+    historyRef.current.push(nodes.map((n) => ({ ...(n.data.raw as WNode) })))
+    restoreSnapshot(snap)
+    bump((v) => v + 1)
+  }, [nodes, restoreSnapshot])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) redo()
+        else undo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo, redo])
+
+  const selectedNode = nodes.find((n) => n.id === selectedId)?.data.raw as WNode | undefined
+
+  const nodeTypes = useMemo(() => ({
+    workflowNode: ({ data }: { data: NodeData }) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
+        <span style={{ color: ADVANCED.has(data.nodeType) ? '#ff5c5c' : '#8b8b94' }}>
+          {nodeTypeIcon(data.nodeType)}
+        </span>
+        <span>{data.label}</span>
+      </div>
+    ),
+  }), [])
+
+  // YAML modal state
+  const [yamlOpen, setYamlOpen] = useState(false)
+  const [yamlMode, setYamlMode] = useState<'export' | 'import'>('export')
+  const [yamlText, setYamlText] = useState('')
+  const [yamlBusy, setYamlBusy] = useState(false)
+
+  const openExport = async () => {
+    setYamlMode('export')
+    setYamlOpen(true)
+    setYamlBusy(true)
+    try {
+      setYamlText(await actions.yamlExport(buildDef(nodes, edges)))
+    } catch (e) {
+      message.error('导出失败：' + String((e as Error).message))
+    } finally {
+      setYamlBusy(false)
+    }
+  }
+  const openImport = () => {
+    setYamlMode('import')
+    setYamlText('')
+    setYamlOpen(true)
+  }
+  const doImport = async () => {
+    setYamlBusy(true)
+    try {
+      const def = await actions.yamlImport(yamlText)
+      pushHistory()
+      applyDef(def)
+      setYamlOpen(false)
+      message.success('YAML 已导入画布（保存后生效）')
+    } catch (e) {
+      message.error('导入失败：' + String((e as Error).message))
+    } finally {
+      setYamlBusy(false)
+    }
+  }
+
+  // Version modal state
+  const [histOpen, setHistOpen] = useState(false)
+  const [versions, setVersions] = useState<Array<Record<string, unknown>>>([])
+  const [histLoading, setHistLoading] = useState(false)
+  const openHistory = async () => {
+    if (!workflowName) {
+      message.info('请先保存工作流后再查看版本历史')
+      return
+    }
+    setHistOpen(true)
+    setHistLoading(true)
+    try {
+      setVersions(await actions.listVersions(workflowName))
+    } catch {
+      message.error('加载版本失败')
+    } finally {
+      setHistLoading(false)
+    }
+  }
+  const doRestore = async (v: number) => {
+    try {
+      const def = await actions.restoreVersion(workflowName!, v)
+      applyDef(def)
+      setHistOpen(false)
+      message.success(`已回滚到 v${v}（作为新版本保存）`)
+    } catch (e) {
+      message.error('回滚失败：' + String((e as Error).message))
+    }
   }
 
   return (
-    <div style={{ display: 'flex', gap: 12, height }}>
-      {/* Palette */}
-      <div
-        style={{
-          width: 132,
-          flexShrink: 0,
-          background: OC.bgElevated,
-          border: `1px solid ${OC.border}`,
-          borderRadius: 10,
-          padding: 10,
-        }}
-      >
-        <div style={{ color: OC.muted, fontSize: 11, marginBottom: 8 }}>节点类型</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {NODE_KINDS.map((k) => (
-            <button
-              key={k.value}
-              onClick={() => addNode(k.value)}
-              style={{
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: 12,
-                padding: '6px 8px',
-                borderRadius: 6,
-                color: OC.text,
-                background: OC.card,
-                border: `1px solid ${OC.border}`,
-              }}
-            >
-              + {k.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Canvas */}
-      <div style={{ flex: 1, minWidth: 0, border: `1px solid ${OC.border}`, borderRadius: 10, overflow: 'hidden' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={(_, n) => setSelectedId(n.data.terminal ? null : n.id)}
-          onPaneClick={() => setSelectedId(null)}
-          fitView
-          proOptions={{ hideAttribution: true }}
-          defaultEdgeOptions={{
-            style: { stroke: OC.muted },
-            markerEnd: { type: MarkerType.ArrowClosed, color: OC.muted },
-          }}
-        >
-          <Background color={OC.borderStrong} gap={20} />
-          <Controls showInteractive={false} />
-          <MiniMap
-            pannable
-            zoomable
-            nodeColor={(n) => (n.data.terminal === 'start' ? '#7fd0a4' : OC.accent)}
-            maskColor="rgba(0,0,0,0.5)"
-            style={{ background: OC.bgElevated }}
-          />
-        </ReactFlow>
-      </div>
-
-      {/* Property panel */}
-      <div
-        style={{
-          width: 230,
-          flexShrink: 0,
-          background: OC.bgElevated,
-          border: `1px solid ${OC.border}`,
-          borderRadius: 10,
-          padding: 12,
-          overflowY: 'auto',
-        }}
-      >
-        {selectedNode ? (
-          <NodePropsForm
-            node={selectedNode}
-            update={updateSelected}
-            remove={removeSelected}
-          />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+      <Space wrap size={6}>
+        <Dropdown menu={{
+          items: NODE_TYPES.map((t) => ({
+            key: t,
+            label: <Space>{nodeTypeIcon(t)}{t}{ADVANCED.has(t) && <Tag color="volcano">高级</Tag>}</Space>,
+            onClick: () => addNode(t),
+          })),
+        }}>
+          <Button type="primary" icon={<PlusOutlined />}>添加节点</Button>
+        </Dropdown>
+        <Tooltip title="自动布局"><Button icon={<LayoutOutlined />} onClick={autoLayout} /></Tooltip>
+        <Tooltip title="撤销 Ctrl+Z"><Button icon={<UndoOutlined />} onClick={undo} disabled={!historyRef.current.length} /></Tooltip>
+        <Tooltip title="重做 Ctrl+Shift+Z"><Button icon={<RedoOutlined />} onClick={redo} disabled={!futureRef.current.length} /></Tooltip>
+        <Tooltip title="复制选中节点"><Button icon={<CopyOutlined />} onClick={() => selectedNode && duplicateNode(selectedNode)} disabled={!selectedNode} /></Tooltip>
+        <Tooltip title="删除选中节点"><Button danger icon={<DeleteOutlined />} onClick={() => selectedId && removeNode(selectedId)} disabled={!selectedId} /></Tooltip>
+        <span style={{ width: 8 }} />
+        {actions.running ? (
+          <Button danger icon={<StopOutlined />} onClick={actions.stopRun}>停止</Button>
         ) : (
-          <div style={{ color: OC.muted, fontSize: 12.5, lineHeight: 1.7 }}>
-            点击左侧类型添加节点；拖动节点、从节点右侧圆点拉线即可建立连线。点击某个节点可在此编辑属性。
+          <Dropdown menu={{
+            items: [
+              { key: 'all', icon: <PlayCircleOutlined />, label: '试运行整个工作流', onClick: () => actions.runTest(buildDef(nodes, edges), undefined, STATUS_COLORS) },
+              { key: 'single', icon: <ThunderboltOutlined />, label: '试运行选中节点', disabled: !selectedNode, onClick: () => actions.runTest(buildDef(nodes, edges), selectedId!, STATUS_COLORS) },
+            ],
+          }}>
+            <Button style={{ color: '#ff5c5c', borderColor: '#ff5c5c' }} icon={<ThunderboltOutlined />}>试运行</Button>
+          </Dropdown>
+        )}
+        <Button icon={<HistoryOutlined />} onClick={openHistory}>版本</Button>
+        <Dropdown menu={{
+          items: [
+            { key: 'exp', icon: <DownloadOutlined />, label: '导出 YAML', onClick: openExport },
+            { key: 'imp', icon: <UploadOutlined />, label: '导入 YAML', onClick: openImport },
+          ],
+        }}>
+          <Button icon={<BranchesOutlined />}>YAML</Button>
+        </Dropdown>
+      </Space>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: selectedNode ? '1fr 320px' : '1fr',
+        gap: 12,
+        flex: 1,
+        minHeight: 0,
+      }}>
+        <div style={{ height: '100%', border: '1px solid #23262f', borderRadius: 10, overflow: 'hidden', background: '#0e1015' }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={(_, node) => setSelectedId(node.id)}
+            onPaneClick={() => setSelectedId(null)}
+            fitView
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#23262f" />
+            <Controls showInteractive={false} />
+            <MiniMap
+              pannable
+              zoomable
+              nodeColor={(n) => {
+                switch ((n.data as NodeData).status) {
+                  case 'running': return '#ff5c5c'
+                  case 'ok': return '#3fbf7f'
+                  case 'error': return '#ff4d4f'
+                  default: return '#2f3340'
+                }
+              }}
+              maskColor="rgba(14,16,21,.7)"
+              style={{ background: '#161920', border: '1px solid #23262f', borderRadius: 8 }}
+            />
+          </ReactFlow>
+        </div>
+
+        {selectedNode && (
+          <div style={{ overflowY: 'auto', paddingRight: 4 }}>
+            <NodeForm node={selectedNode} onChange={updateNode} onRemove={() => removeNode(selectedNode.id)} />
           </div>
         )}
       </div>
+
+      <Modal
+        title={yamlMode === 'export' ? '导出为 YAML' : '从 YAML 导入'}
+        open={yamlOpen}
+        width={680}
+        onCancel={() => setYamlOpen(false)}
+        footer={yamlMode === 'export' ? [
+          <Button key="copy" icon={<CopyOutlined />} onClick={() => { navigator.clipboard.writeText(yamlText); message.success('已复制') }}>复制</Button>,
+          <Button key="dl" icon={<DownloadOutlined />} onClick={() => {
+            const blob = new Blob([yamlText], { type: 'text/yaml' })
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(blob)
+            a.download = `${workflowName || 'workflow'}.yml`
+            a.click()
+          }}>下载 .yml</Button>,
+          <Button key="close" onClick={() => setYamlOpen(false)}>关闭</Button>,
+        ] : [
+          <Button key="cancel" onClick={() => setYamlOpen(false)}>取消</Button>,
+          <Button key="ok" type="primary" icon={<UpOutlined />} loading={yamlBusy} onClick={doImport}>导入到画布</Button>,
+        ]}
+      >
+        <Input.TextArea
+          rows={18}
+          value={yamlText}
+          onChange={(e) => setYamlText(e.target.value)}
+          style={{ fontFamily: 'monospace', fontSize: 12 }}
+          placeholder={yamlMode === 'import' ? '粘贴 nodes/edges 形式的 YAML…' : ''}
+        />
+      </Modal>
+
+      <Modal
+        title={<Space><HistoryOutlined />版本历史{workflowName ? ` · ${workflowName}` : ''}</Space>}
+        open={histOpen}
+        width={620}
+        onCancel={() => setHistOpen(false)}
+        footer={<Button onClick={() => setHistOpen(false)}>关闭</Button>}
+      >
+        {histLoading ? (
+          <div style={{ padding: 24, textAlign: 'center', color: '#8b8b94' }}>加载中…</div>
+        ) : versions.length === 0 ? (
+          <Empty description="暂无历史版本" />
+        ) : (
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {versions.map((v) => (
+              <div key={String(v.version)} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 12px', border: '1px solid #23262f', borderRadius: 8, background: '#161920',
+              }}>
+                <Space>
+                  <Tag color="blue">v{String(v.version)}</Tag>
+                  <span>{String(v.description || '（无描述）')}</span>
+                  {v.enabled === false && <Tag>已停用</Tag>}
+                </Space>
+                <Space size={4}>
+                  <span style={{ color: '#8b8b94', fontSize: 12 }}>{String(v.createdAt ?? '')}</span>
+                  <Button size="small" icon={<CheckOutlined />} onClick={() => doRestore(Number(v.version))}>回滚</Button>
+                </Space>
+              </div>
+            ))}
+          </Space>
+        )}
+      </Modal>
     </div>
   )
 }
 
-import { Form, Input, Select, Button, Space } from 'antd'
-
-function NodePropsForm({
-  node,
-  update,
-  remove,
-}: {
-  node: Node<DesignerNodeData>
-  update: (patch: Partial<DesignerNodeData>) => void
-  remove: () => void
+export function WorkflowDesigner(props: {
+  definition: WDef
+  onChange: (d: WDef) => void
+  workflowName?: string
 }) {
-  const kind = String(node.data.kind)
-  return (
-    <Form layout="vertical" size="small">
-      <Form.Item label="节点 ID">
-        <Input value={node.id} disabled style={{ fontFamily: 'monospace' }} />
-      </Form.Item>
-      <Form.Item label="类型">
-        <Select
-          value={kind}
-          options={NODE_KINDS.map((k) => ({ value: k.value, label: k.label }))}
-          onChange={(v) => update({ kind: v })}
-        />
-      </Form.Item>
-      <Form.Item label="显示名称">
-        <Input value={node.data.label} onChange={(e) => update({ label: e.target.value })} />
-      </Form.Item>
-
-      {(kind === 'AGENT' || kind === 'DECISION') && (
-        <Form.Item label="指令 / Query">
-          <Input.TextArea
-            rows={3}
-            value={asStr(node.data.query)}
-            onChange={(e) => update({ query: e.target.value })}
-            placeholder="处理输入：${input}"
-          />
-        </Form.Item>
-      )}
-      {kind === 'AGENT' && (
-        <Form.Item label="输出变量 outputVar">
-          <Input
-            value={asStr(node.data.outputVar)}
-            onChange={(e) => update({ outputVar: e.target.value })}
-          />
-        </Form.Item>
-      )}
-      {kind === 'TOOL' && (
-        <>
-          <Form.Item label="工具名 tool">
-            <Input
-              value={asStr(node.data.tool)}
-              onChange={(e) => update({ tool: e.target.value })}
-            />
-          </Form.Item>
-          <Form.Item label="静态参数（JSON 对象）">
-            <Input.TextArea
-              rows={3}
-              value={asStr(node.data.params)}
-              onChange={(e) => update({ params: e.target.value })}
-              placeholder='{"key":"value"}'
-            />
-          </Form.Item>
-        </>
-      )}
-      {kind === 'SKILL' && (
-        <Form.Item label="技能名 skill">
-          <Input
-            value={asStr(node.data.skill)}
-            onChange={(e) => update({ skill: e.target.value })}
-          />
-        </Form.Item>
-      )}
-      {kind === 'PAUSE' && (
-        <Form.Item label="等待键 waitFor">
-          <Input
-            value={asStr(node.data.waitFor)}
-            onChange={(e) => update({ waitFor: e.target.value })}
-          />
-        </Form.Item>
-      )}
-
-      <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-        <Button danger size="small" onClick={remove}>
-          删除节点
-        </Button>
-      </Space>
-    </Form>
-  )
-}
-
-export default function WorkflowDesigner(props: WorkflowDesignerProps) {
   return (
     <ReactFlowProvider>
-      <Canvas {...props} />
+      <DesignerInner {...props} />
     </ReactFlowProvider>
   )
-}
-
-// ===== conversions =====
-
-function toFlowNodes(def: WorkflowDef): Node<DesignerNodeData>[] {
-  const out: Node<DesignerNodeData>[] = [
-    {
-      id: START,
-      type: 'dnode',
-      position: { x: 0, y: 160 },
-      data: { label: '开始', kind: 'START', terminal: 'start' },
-      draggable: true,
-      connectable: true,
-      deletable: false,
-    },
-    {
-      id: END,
-      type: 'dnode',
-      position: { x: 640, y: 160 },
-      data: { label: '结束', kind: 'END', terminal: 'end' },
-      deletable: false,
-    },
-  ]
-  for (const n of def.nodes ?? []) {
-    out.push({
-      id: n.id,
-      type: 'dnode',
-      position: { x: n.x ?? 200, y: n.y ?? 120 },
-      data: {
-        label: n.label || n.id,
-        kind: n.type,
-        query: n.query,
-        systemPrompt: n.systemPrompt,
-        outputVar: n.outputVar,
-        tool: n.tool,
-        params: n.params,
-        skill: n.skill,
-        waitFor: n.waitFor,
-      },
-    })
-  }
-  return out
-}
-
-function toFlowEdges(def: WorkflowDef): Edge[] {
-  return (def.edges ?? []).map((e) => ({
-    id: `${e.source}->${e.target}:${e.condition ?? ''}`,
-    source: e.source,
-    target: e.target,
-    label: e.condition || undefined,
-    labelStyle: { fill: '#d4a05a', fontSize: 11 },
-    style: { stroke: e.condition ? '#d4a05a' : OC.muted, strokeDasharray: e.condition ? '5 4' : undefined },
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      color: e.condition ? '#d4a05a' : OC.muted,
-    },
-  }))
-}
-
-/** Read current nodes/edges via a ref-free helper exposed by Canvas through context. */
-export function flowToDef(nodes: Node<DesignerNodeData>[], edges: Edge[]): WorkflowDef {
-  const wfNodes: WorkflowDef['nodes'] = []
-  for (const n of nodes) {
-    if (n.data.terminal) continue
-    const d = n.data
-    wfNodes.push({
-      id: n.id,
-      type: String(d.kind),
-      label: asStr(d.label),
-      query: asStr(d.query),
-      systemPrompt: asStr(d.systemPrompt),
-      outputVar: asStr(d.outputVar),
-      tool: asStr(d.tool),
-      params: parseMaybeJson(d.params),
-      skill: asStr(d.skill),
-      waitFor: asStr(d.waitFor),
-      x: n.position.x,
-      y: n.position.y,
-    })
-  }
-  return {
-    nodes: wfNodes,
-    edges: edges.map((e) => ({
-      source: e.source,
-      target: e.target,
-      condition: typeof e.label === 'string' && e.label ? e.label : undefined,
-    })),
-  }
-}
-
-function asStr(v: unknown): string {
-  return v == null ? '' : typeof v === 'string' ? v : String(v)
-}
-
-function parseMaybeJson(v: unknown): unknown {
-  if (typeof v !== 'string') return v
-  const t = v.trim()
-  if (!t) return undefined
-  try {
-    return JSON.parse(t)
-  } catch {
-    return v
-  }
 }

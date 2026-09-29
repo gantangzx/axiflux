@@ -18,9 +18,9 @@ export type WorkflowNode = {
   params?: unknown
   skill?: string
   routes?: WorkflowRoute[]
-  branches?: string[]
+  branches?: unknown
   waitFor?: string
-  approval?: WorkflowApproval
+  approval?: unknown
   x?: number
   y?: number
 }
@@ -30,3 +30,7 @@ export type WorkflowEdge = {
   target: string
   condition?: string
 }
+
+// Short aliases used across the designer components.
+export type WDef = WorkflowDef
+export type WNode = WorkflowNode

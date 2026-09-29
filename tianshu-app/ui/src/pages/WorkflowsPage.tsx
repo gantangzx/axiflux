@@ -22,8 +22,8 @@ import GraphTopology, {
   type TopoEdge,
   type TopoNode,
 } from '../components/GraphTopology'
-import WorkflowDesigner from '../components/WorkflowDesigner'
-import type { WorkflowDef } from '../workflow-types'
+import { WorkflowDesigner } from '../components/WorkflowDesigner'
+import type { WDef } from '../workflow-types'
 import { IS_ENTERPRISE } from '../edition'
 
 type DetailNode = { id: string; type: string; label?: string }
@@ -137,7 +137,7 @@ export default function WorkflowsPage() {
 
   // Visual designer (EE): editing an existing graph or creating a new one.
   const [editing, setEditing] = useState<{ name: string; description: string; maxSteps: number; enabled: boolean } | null>(null)
-  const [designerDef, setDesignerDef] = useState<WorkflowDef | null>(null)
+  const [designerDef, setDesignerDef] = useState<WDef | null>(null)
   const [savingDef, setSavingDef] = useState(false)
 
   // Live node highlighting for the topology view.
@@ -337,9 +337,9 @@ export default function WorkflowsPage() {
 
   const openNewDesigner = async () => {
     try {
-      const draft = await api.get<WorkflowDef>('/api/v1/admin/workflows/new')
+      const draft = await api.get<{ definition: WDef }>('/api/v1/admin/workflows/new')
       setEditing({ name: '', description: '', maxSteps: 50, enabled: true })
-      setDesignerDef(draft)
+      setDesignerDef(draft.definition)
     } catch (e: any) {
       message.error(e.message)
     }
@@ -352,7 +352,7 @@ export default function WorkflowsPage() {
         description?: string
         maxSteps: number
         enabled: boolean
-        definition: WorkflowDef
+        definition: WDef
       }>(`/api/v1/admin/workflows/${encodeURIComponent(g.name)}`)
       setEditing({
         name: full.name,
@@ -379,7 +379,7 @@ export default function WorkflowsPage() {
     }
     setSavingDef(true)
     try {
-      await api.post(`/api/v1/admin/workflows/${encodeURIComponent(name)}`, {
+      await api.put(`/api/v1/admin/workflows/${encodeURIComponent(name)}`, {
         description: editing.description,
         maxSteps: editing.maxSteps,
         enabled: editing.enabled,
@@ -708,11 +708,13 @@ export default function WorkflowsPage() {
                 />
               </Space>
             </Space>
-            <WorkflowDesigner
-              initial={designerDef}
-              height={520}
-              onChange={setDesignerDef}
-            />
+            <div style={{ height: 520 }}>
+              <WorkflowDesigner
+                definition={designerDef}
+                workflowName={editing.name || undefined}
+                onChange={setDesignerDef}
+              />
+            </div>
           </>
         )}
       </Modal>
