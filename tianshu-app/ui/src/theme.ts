@@ -39,9 +39,12 @@ export const PALETTE = {
 export const OC = {
   bg: 'var(--oc-bg)',
   bgElevated: 'var(--oc-elevated)',
+  elevated: 'var(--oc-elevated)',
   card: 'var(--oc-card)',
+  popover: 'var(--oc-popover)',
   hover: 'var(--oc-hover)',
   border: 'var(--oc-border)',
+  borderStrong: 'var(--oc-border-strong)',
   textStrong: 'var(--oc-text-strong)',
   text: 'var(--oc-text)',
   muted: 'var(--oc-muted)',
@@ -97,6 +100,9 @@ export function buildTheme(eff: 'light' | 'dark', accentId: AccentId): ThemeConf
   const p = PALETTE[eff]
   const accent = accentOf(accentId)[eff]
   const isDark = eff === 'dark'
+  // Tooltip/Tour use a fixed dark spotlight with light text regardless of the
+  // surrounding mode. Reusing bgElevated here made light-mode tooltips white-on-white.
+  const spotlightBg = isDark ? '#2a2e38' : 'rgba(0, 0, 0, 0.82)'
 
   return {
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
@@ -106,7 +112,7 @@ export function buildTheme(eff: 'light' | 'dark', accentId: AccentId): ThemeConf
       colorBgLayout: p.bg,
       colorBgContainer: p.card,
       colorBgElevated: p.bgElevated,
-      colorBgSpotlight: p.bgElevated,
+      colorBgSpotlight: spotlightBg,
       colorBorder: p.border,
       colorBorderSecondary: isDark ? '#1a1d25' : '#eeeae2',
       colorText: p.textStrong,
@@ -196,7 +202,7 @@ export function buildTheme(eff: 'light' | 'dark', accentId: AccentId): ThemeConf
         fontSize: 13.5,
       },
       Modal: { contentBg: p.card, headerBg: p.card },
-      Tooltip: { colorBgSpotlight: p.bgElevated },
+      Tooltip: { colorBgSpotlight: spotlightBg, colorTextLightSolid: '#ffffff' },
       Divider: { colorSplit: p.border },
       Descriptions: { colorTextSecondary: p.muted, colorText: p.textStrong },
       Tabs: { itemColor: p.muted, itemSelectedColor: p.textStrong, inkBarColor: accent },

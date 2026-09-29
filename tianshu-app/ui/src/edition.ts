@@ -8,6 +8,7 @@ const raw = (import.meta.env.VITE_EDITION ?? 'community').toString().toLowerCase
 export const EDITION: Edition = raw === 'enterprise' ? 'enterprise' : 'community'
 
 export const IS_COMMUNITY = EDITION === 'community'
+export const IS_ENTERPRISE = EDITION === 'enterprise'
 
 /** Public channel used to capture private-deployment / enterprise inquiries. */
 export const ENTERPRISE_DISCUSSIONS_URL =
@@ -20,6 +21,7 @@ export const COMMERCIAL_ROUTES = [
   'usage',
   'admin-subscriptions',
   'admin-funnel',
+  'admin-accounts',
   'agent-templates',
   'api-keys',
   'license-management',

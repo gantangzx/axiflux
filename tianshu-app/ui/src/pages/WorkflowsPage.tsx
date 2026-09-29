@@ -14,7 +14,7 @@ import {
   Switch,
   Tooltip,
 } from 'antd'
-import { PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons'
+import { PlayCircleOutlined, ReloadOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons'
 import { api, getToken } from '../api'
 import { useApi, Loading, ErrBox, fmt, mono, OC } from '../ui'
 import GraphTopology, {
@@ -22,6 +22,9 @@ import GraphTopology, {
   type TopoEdge,
   type TopoNode,
 } from '../components/GraphTopology'
+import WorkflowDesigner from '../components/WorkflowDesigner'
+import type { WorkflowDef } from '../workflow-types'
+import { IS_ENTERPRISE } from '../edition'
 
 type DetailNode = { id: string; type: string; label?: string }
 type DetailEdge = {
@@ -131,6 +134,11 @@ export default function WorkflowsPage() {
   const [cpGraph, setCpGraph] = useState<GraphSummary | null>(null)
   const [resumeText, setResumeText] = useState('')
   const [resuming, setResuming] = useState(false)
+
+  // Visual designer (EE): editing an existing graph or creating a new one.
+  const [editing, setEditing] = useState<{ name: string; description: string; maxSteps: number; enabled: boolean } | null>(null)
+  const [designerDef, setDesignerDef] = useState<WorkflowDef | null>(null)
+  const [savingDef, setSavingDef] = useState(false)
 
   // Live node highlighting for the topology view.
   const [hl, setHl] = useState<Record<string, NodeStatus>>({})
@@ -327,6 +335,68 @@ export default function WorkflowsPage() {
     }
   }
 
+  const openNewDesigner = async () => {
+    try {
+      const draft = await api.get<WorkflowDef>('/api/v1/admin/workflows/new')
+      setEditing({ name: '', description: '', maxSteps: 50, enabled: true })
+      setDesignerDef(draft)
+    } catch (e: any) {
+      message.error(e.message)
+    }
+  }
+
+  const openEditor = async (g: GraphSummary) => {
+    try {
+      const full = await api.get<{
+        name: string
+        description?: string
+        maxSteps: number
+        enabled: boolean
+        definition: WorkflowDef
+      }>(`/api/v1/admin/workflows/${encodeURIComponent(g.name)}`)
+      setEditing({
+        name: full.name,
+        description: full.description ?? '',
+        maxSteps: full.maxSteps,
+        enabled: full.enabled,
+      })
+      setDesignerDef(full.definition)
+    } catch (e: any) {
+      message.error(e.message)
+    }
+  }
+
+  const submitDefinition = async () => {
+    if (!editing || !designerDef) return
+    const name = editing.name.trim()
+    if (!name) {
+      message.warning('请填写工作流名称')
+      return
+    }
+    if (!/^[a-z0-9][a-z0-9_-]{0,127}$/i.test(name)) {
+      message.warning('名称只能含字母、数字、下划线、连字符，且以字母或数字开头')
+      return
+    }
+    setSavingDef(true)
+    try {
+      await api.post(`/api/v1/admin/workflows/${encodeURIComponent(name)}`, {
+        description: editing.description,
+        maxSteps: editing.maxSteps,
+        enabled: editing.enabled,
+        definition: designerDef,
+      })
+      message.success(`工作流「${name}」已保存`)
+      setEditing(null)
+      setDesignerDef(null)
+      graphs.reload()
+      runs.reload()
+    } catch (e: any) {
+      message.error(e.message)
+    } finally {
+      setSavingDef(false)
+    }
+  }
+
   return (
     <div style={{ padding: 24, maxWidth: 1240, margin: '0 auto' }}>
       <Card
@@ -342,6 +412,11 @@ export default function WorkflowsPage() {
                 <Switch size="small" checked={live} onChange={setLive} />
               </Space>
             </Tooltip>
+            {IS_ENTERPRISE && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={openNewDesigner}>
+                新建工作流
+              </Button>
+            )}
             <Button icon={<ReloadOutlined />} onClick={() => { graphs.reload(); runs.reload() }}>
               刷新
             </Button>
@@ -383,6 +458,13 @@ export default function WorkflowsPage() {
                               <Button size="small" onClick={() => openDetail(g)}>
                                 详情
                               </Button>
+                              {IS_ENTERPRISE && (
+                                <Tooltip title="在可视化画布中编辑">
+                                  <Button size="small" icon={<EditOutlined />} onClick={() => openEditor(g)}>
+                                    编辑
+                                  </Button>
+                                </Tooltip>
+                              )}
                               <Button
                                 size="small"
                                 type="primary"
@@ -578,6 +660,59 @@ export default function WorkflowsPage() {
                 恢复运行
               </Button>
             </Space>
+          </>
+        )}
+      </Modal>
+
+      {/* Visual designer (EE) */}
+      <Modal
+        title={editing?.name ? `编辑工作流 · ${editing.name}` : '新建工作流'}
+        open={!!editing}
+        onCancel={() => { setEditing(null); setDesignerDef(null) }}
+        onOk={submitDefinition}
+        confirmLoading={savingDef}
+        okText="保存"
+        cancelText="取消"
+        width={1100}
+        destroyOnClose
+      >
+        {editing && designerDef && (
+          <>
+            <Space size={12} style={{ marginBottom: 12, width: '100%' }} wrap>
+              <Input
+                addonBefore="名称"
+                value={editing.name}
+                disabled={!!editing.name}
+                style={{ width: 260 }}
+                placeholder="my_workflow"
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              />
+              <Input
+                addonBefore="描述"
+                value={editing.description}
+                style={{ width: 320 }}
+                onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+              />
+              <Input
+                addonBefore="步数上限"
+                type="number"
+                value={editing.maxSteps}
+                style={{ width: 150 }}
+                onChange={(e) => setEditing({ ...editing, maxSteps: Number(e.target.value) || 50 })}
+              />
+              <Space size={6}>
+                <span style={{ color: OC.muted, fontSize: 12.5 }}>启用</span>
+                <Switch
+                  checked={editing.enabled}
+                  onChange={(v) => setEditing({ ...editing, enabled: v })}
+                />
+              </Space>
+            </Space>
+            <WorkflowDesigner
+              initial={designerDef}
+              height={520}
+              onChange={setDesignerDef}
+            />
           </>
         )}
       </Modal>

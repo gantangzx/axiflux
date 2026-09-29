@@ -26,6 +26,11 @@ public final class GraphCatalog {
         GraphDefinitions.register(graph);
     }
 
+    /** Remove a graph definition if present. */
+    public void remove(String name) {
+        graphs.remove(name);
+    }
+
     public Optional<StateGraph> find(String name) {
         return Optional.ofNullable(graphs.get(name));
     }
