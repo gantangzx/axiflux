@@ -1,22 +1,22 @@
-天枢 Agent 平台（Tianshu Agent Platform）
+AxiFlux Agent 平台（Axiflux Platform）
 Copyright (c) 2026 gantangzx. All rights reserved.
 
 本产品为 open-core 双层许可产品：
 
 1) 社区版（Community Edition）
    许可：Apache License, Version 2.0（全文见 LICENSE 文件）
-   范围：tianshu-core / tianshu-storage / tianshu-spring / tianshu-registry / tianshu-app
-         （即不包含 tianshu-ee-* 模块的全部代码）
+   范围：reaxon-core / axiflux-storage / axiflux-spring / axiflux-registry / axiflux-app
+         （即不包含 axiflux-ee-* 模块的全部代码）
    说明：Apache-2.0 含显式专利授权，允许商用、修改、再分发（保留版权与许可声明）。
 
-2) 企业版模块（Enterprise Edition，目录/构件名前缀 tianshu-ee-）
-   许可：Tianshu Enterprise License 1.0（全文见 LICENSE-EE.md）
-   范围：tianshu-ee-core / tianshu-ee-sso / tianshu-ee-audit 等企业版能力模块
+2) 企业版模块（Enterprise Edition，目录/构件名前缀 axiflux-ee-）
+   许可：Axiflux Enterprise License 1.0（全文见 LICENSE-EE.md）
+   范围：axiflux-ee-core / axiflux-ee-sso / axiflux-ee-audit 等企业版能力模块
    说明：企业版为专有许可（source-available，非开源）。使用、部署、二次分发须取得 gantang
          的有效商业授权（License 文件授权），且不得用于规避社区版之外的商业授权限制。
 
 商标声明
-   本产品名称、Logo 与「天枢 / Tianshu」标识归 gantang 所有。
+   本产品名称、Logo 与「AxiFlux / Axiflux」标识归 gantang 所有。
    ⚠ 注意：在与客户或渠道对外发布前，须完成商标可注册性检索与申请（见
    docs/legal/trademark-checklist.md）。若检索结论为不可注册，须按预案更换产品名并
    同步更新全部对外材料。本文件中的名称使用不构成商标权主张。

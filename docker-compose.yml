@@ -1,10 +1,10 @@
 # ============================================================================
-# Tianshu docker-compose
+# Axiflux docker-compose
 #
 # 用法：
 #   docker compose up -d postgres redis      # 只起本地基础设施（profile=local/dev 本机联调）
 #   docker compose up -d                     # 连同应用一起起（默认 local profile）
-#   SPRING_PROFILES_ACTIVE=dev docker compose up -d tianshu
+#   SPRING_PROFILES_ACTIVE=dev docker compose up -d Axiflux
 #
 # 密钥不写在本文件：在仓库根放一个 gitignored 的 .env（参考 env/ 模板），
 # compose 会自动读取其中的变量并注入容器。
@@ -29,7 +29,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: ${PG_DB:-tianshu}
+      POSTGRES_DB: ${PG_DB:-Axiflux}
       POSTGRES_USER: ${PG_USER:-postgres}
       POSTGRES_PASSWORD: ${PG_PASSWORD:-postgres}
     ports:
@@ -37,17 +37,17 @@ services:
     volumes:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d ${PG_DB:-tianshu}"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d ${PG_DB:-Axiflux}"]
       interval: 10s
       timeout: 3s
       retries: 5
 
-  # ─── Tianshu Application ─────────────────────────────────────────
-  tianshu:
+  # ─── Axiflux Application ─────────────────────────────────────────
+  axiflux:
     build:
       context: .
       dockerfile: Dockerfile
-    image: tianshu:latest
+    image: axiflux:latest
     depends_on:
       redis:
         condition: service_healthy
@@ -59,7 +59,7 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
 
       # Infrastructure (container DNS)
-      PG_URL: jdbc:postgresql://postgres:5432/${PG_DB:-tianshu}
+      PG_URL: jdbc:postgresql://postgres:5432/${PG_DB:-Axiflux}
       PG_USER: ${PG_USER:-postgres}
       PG_PASSWORD: ${PG_PASSWORD:-postgres}
       REDIS_HOST: redis
@@ -80,7 +80,7 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      TIANSHU_PUBLIC_URL: ${TIANSHU_PUBLIC_URL:-http://localhost:8080}
+      AXIFLUX_PUBLIC_URL: ${AXIFLUX_PUBLIC_URL:-http://localhost:8080}
 
       JAVA_OPTS: ${JAVA_OPTS:-}
     restart: unless-stopped

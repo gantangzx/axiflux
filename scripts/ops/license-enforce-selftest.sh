@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 License enforce 实机验证脚本 (Linux / WSL, 无需 root)
+# AxiFlux License enforce 实机验证脚本 (Linux / WSL, 无需 root)
 #
 # 目标：验证 docs/one-person-roadmap.md M2-2 —— 离线企业 License 的
 #       enforce + grace 行为，以及签发 / 续签自助闭环。
@@ -18,10 +18,10 @@
 # License 由 fat jar 内的 LicenseTool（厂商工具）实时签发。
 #
 # 用法:
-#   ./license-enforce-selftest.sh --jar /abs/tianshu-app-*.jar [选项]
+#   ./license-enforce-selftest.sh --jar /abs/axiflux-app-*.jar [选项]
 # 选项:
 #   --jar PATH         应用 fat jar（必填）
-#   --work DIR         隔离工作目录（默认 /tmp/tianshu-lic-<rand>）
+#   --work DIR         隔离工作目录（默认 /tmp/axiflux-lic-<rand>）
 #   --port N           应用端口（默认 18090）
 #   --pg-port N        PostgreSQL 端口（默认 15433）
 #   --redis-port N     Redis 端口（默认 16380）
@@ -51,7 +51,7 @@ done
 
 [ -n "$JAR" ] && [ -f "$JAR" ] || { echo "必须提供存在的 --jar" >&2; exit 2; }
 JAR=$(cd "$(dirname "$JAR")" && pwd)/$(basename "$JAR")
-WORK="${WORK:-/tmp/tianshu-lic-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
+WORK="${WORK:-/tmp/axiflux-lic-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
 
 PGDIR="$WORK/pg"; REDISDIR="$WORK/redis"; LOGDIR="$WORK/logs"
 KEYDIR="$WORK/keys"; LICDIR="$WORK/licenses"
@@ -62,7 +62,7 @@ DEPLOYMENT_ID="dep-$(head -c6 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 LICENSE_FILE="$LICDIR/enterprise.lic"
 PUBLIC_KEY="$KEYDIR/public.pem"
 PRIVATE_KEY="$KEYDIR/private.pem"
-CONF="$WORK/tianshu.env"
+CONF="$WORK/axiflux.env"
 
 PASS=0; FAIL=0
 rec() { # rec <expected|got...>
@@ -98,8 +98,8 @@ export LD_LIBRARY_PATH="$(dirname "$(dirname "$PG_BIN")")/lib:${LD_LIBRARY_PATH:
 "$INITDB" -D "$PGDIR" -U postgres --encoding=UTF8 --locale=C -A trust >"$LOGDIR/initdb.log" 2>&1
 "$PG_CTL" -D "$PGDIR" -o "-p $PG_PORT -k $PGDIR -h 127.0.0.1" -w -l "$LOGDIR/pg.log" start
 PG_PID=$(head -1 "$PGDIR/postmaster.pid")
-"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d postgres -c "CREATE DATABASE tianshu ENCODING 'UTF8'" >/dev/null
-"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d tianshu -c "CREATE EXTENSION vector" >/dev/null
+"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d postgres -c "CREATE DATABASE Axiflux ENCODING 'UTF8'" >/dev/null
+"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d Axiflux -c "CREATE EXTENSION vector" >/dev/null
 
 # ---------- 启动 Redis ---------------------------------------------------------
 REDIS_PASS=$(head -c 18 /dev/urandom | base64 | tr -d '/+=' | head -c 18)
@@ -116,7 +116,7 @@ EXTRACT="$WORK/extracted"; mkdir -p "$EXTRACT"
 if command -v jar >/dev/null 2>&1; then ( cd "$EXTRACT" && jar xf "$JAR" ); else ( cd "$EXTRACT" && unzip -q "$JAR" ); fi
 TOOL_CP="$EXTRACT/BOOT-INF/classes"
 for j in "$EXTRACT"/BOOT-INF/lib/*.jar; do TOOL_CP="$TOOL_CP:$j"; done
-LICENSE_TOOL="com.gantang.tianshu.spring.license.LicenseTool"
+LICENSE_TOOL="com.gantang.axiflux.spring.license.LicenseTool"
 
 # ---------- 生成厂商密钥对（LicenseTool keygen） --------------------------------
 log "生成厂商 RSA 密钥对"
@@ -141,8 +141,8 @@ write_conf() { # write_conf <ENFORCE|WARN>
   cat > "$CONF" <<EOF
 SPRING_PROFILES_ACTIVE=prod
 SERVER_PORT=$PORT
-TIANSHU_PUBLIC_URL=http://127.0.0.1:$PORT
-PG_URL=jdbc:postgresql://127.0.0.1:$PG_PORT/tianshu
+AXIFLUX_PUBLIC_URL=http://127.0.0.1:$PORT
+PG_URL=jdbc:postgresql://127.0.0.1:$PG_PORT/Axiflux
 PG_USER=postgres
 PG_PASSWORD=
 REDIS_HOST=127.0.0.1
@@ -152,13 +152,13 @@ AUTH_ENABLED=true
 AUTH_SECRET=$AUTH_SECRET
 SESSION_PROVIDER=jpa
 VECTOR_PROVIDER=pgvector
-TIANSHU_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASS
-TIANSHU_LICENSE_ENABLED=true
-TIANSHU_LICENSE_PATH=$LICENSE_FILE
-TIANSHU_LICENSE_PUBLICKEYPATH=$PUBLIC_KEY
-TIANSHU_LICENSE_DEPLOYMENTID=$DEPLOYMENT_ID
-TIANSHU_LICENSE_ENFORCEMENT=$mode
-TIANSHU_LICENSE_GRACEDAYS=7
+AXIFLUX_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASS
+AXIFLUX_LICENSE_ENABLED=true
+AXIFLUX_LICENSE_PATH=$LICENSE_FILE
+AXIFLUX_LICENSE_PUBLICKEYPATH=$PUBLIC_KEY
+AXIFLUX_LICENSE_DEPLOYMENTID=$DEPLOYMENT_ID
+AXIFLUX_LICENSE_ENFORCEMENT=$mode
+AXIFLUX_LICENSE_GRACEDAYS=7
 EOF
   chmod 600 "$CONF"
 }
@@ -181,7 +181,7 @@ stop_app() { [ -n "$APP_PID" ] && kill "$APP_PID" 2>/dev/null || true; sleep 3; 
 # 登录拿 token
 login_token() {
   curl -s --max-time 8 -H 'Content-Type: application/json' -X POST \
-    -d "{\"login\":\"tianshu\",\"password\":\"$ADMIN_PASS\"}" \
+    -d "{\"login\":\"Axiflux\",\"password\":\"$ADMIN_PASS\"}" \
     "http://127.0.0.1:$PORT/api/v1/auth/login" \
   | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['token'])"
 }

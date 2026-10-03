@@ -1,4 +1,4 @@
-# AI Agent 论文与行业报告清单（按 tianshu-java 相关度筛选）
+# AI Agent 论文与行业报告清单（按 axiflux-java 相关度筛选）
 
 > 整理日期：2026-09-04。所有 arXiv 链接已于当日逐篇核验存在性与内容。
 > 项目定位：响应式 AI Agent 框架 / 可嵌入 Spring Boot Starter（**LLM 应用层，不做模型训练**）。

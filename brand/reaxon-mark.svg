@@ -1,0 +1,30 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="rmbg2" cx="0.5" cy="0.36" r="0.78">
+      <stop offset="0" stop-color="#10303a"/>
+      <stop offset="1" stop-color="#0B1020"/>
+    </radialGradient>
+    <filter id="rmpulse2" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur stdDeviation="11" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- App 图标底板 -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#rmbg2)"/>
+
+  <!-- 极简几何 R（与横版同语言） -->
+  <g fill="none" stroke="#46E8E3" stroke-width="34"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150,140 V378"/>
+    <path d="M150,140 H250"/>
+    <path d="M250,140 C322,140 354,178 354,224 C354,270 320,300 254,300 H150"/>
+    <path d="M302,272 L372,368"/>
+  </g>
+
+  <!-- 斜腿末端脉冲点 -->
+  <g filter="url(#rmpulse2)">
+    <circle cx="372" cy="368" r="22" fill="#FF5C5C"/>
+  </g>
+  <circle cx="372" cy="368" r="8" fill="#FFE8E8"/>
+</svg>

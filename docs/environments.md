@@ -1,7 +1,7 @@
-# Tianshu 环境配置与运行手册
+# Axiflux 环境配置与运行手册
 
 > 创建：2026-09-23
-> 适用：tianshu-app 的部署、联调、预发与生产。
+> 适用：axiflux-app 的部署、联调、预发与生产。
 > 目标：把环境收敛为 **local / dev / test / prod** 四档，每档职责单一、晋升路径清晰，
 > 支撑商业化（Stripe 收款、配额、SSO）安全落地。
 
@@ -34,7 +34,7 @@ local  ──提交/合并──▶  dev  ──发布候选──▶  test  ─
 ## 2. 配置文件结构
 
 ```
-tianshu-app/src/main/resources/
+axiflux-app/src/main/resources/
   application.yml         # 基线：所有 profile 的公共默认（含价格表、ARK extra-providers）
   application-local.yml   # 单机开发
   application-dev.yml     # 开发联调
@@ -71,7 +71,7 @@ docker-compose.yml        # 本地基础设施（PostgreSQL+Redis）与容器化
 | `STRIPE_SECRET_KEY` | Stripe 服务端密钥 | — | `sk_test_` | `sk_test_` | `sk_live_` |
 | `STRIPE_PUBLISHABLE_KEY` | Stripe 前端密钥 | — | `pk_test_` | `pk_test_` | `pk_live_` |
 | `STRIPE_WEBHOOK_SECRET` | webhook 签名 | — | CLI `whsec` | Dashboard `whsec` | Dashboard `whsec` |
-| `TIANSHU_PUBLIC_URL` | 本部署对外地址 | — | localhost | 预发域名 | 生产域名 |
+| `AXIFLUX_PUBLIC_URL` | 本部署对外地址 | — | localhost | 预发域名 | 生产域名 |
 | `VECTOR_PROVIDER` | 向量库 | none | pgvector | pgvector | pgvector |
 | `EGRESS_PROXY` | 出口代理 | — | — | 可选 | 推荐 |
 
@@ -107,7 +107,7 @@ scripts\start.bat                 :: 后台最小化，日志 logs\boot-local.lo
 scripts\start.bat local -f        :: 前台（看控制台输出）
 ```
 
-IDE：直接运行 `TianshuAppApplication`，默认即 local profile。
+IDE：直接运行 `AxifluxAppApplication`，默认即 local profile。
 
 ### 3.4 需要本地联调登录/计费时
 
@@ -244,7 +244,7 @@ Dashboard（Live）→ Add endpoint：`https://<prod-host>/api/v1/billing/stripe
 
 ### 6.5 部署形态：在线 SaaS vs 私有化单机
 
-`prod` profile 同时服务两种形态，因此用 `tianshu.deployment.mode` 区分（默认
+`prod` profile 同时服务两种形态，因此用 `axiflux.deployment.mode` 区分（默认
 `standalone`，保证存量私有化零影响）：
 
 | 模式 | 含义 | 租户工作区隔离 |
@@ -255,9 +255,9 @@ Dashboard（Live）→ Add endpoint：`https://<prod-host>/api/v1/billing/stripe
 在线 SaaS 必须设置：
 
 ```properties
-tianshu.deployment.mode=saas
-tianshu.tools.workspaces-enabled=true
-tianshu.tools.workspaces-root=/var/lib/tianshu/workspaces
+axiflux.deployment.mode=saas
+axiflux.tools.workspaces-enabled=true
+axiflux.tools.workspaces-root=/var/lib/Axiflux/workspaces
 ```
 
 `saas` 模式下若漏开 `workspaces-enabled`，启动守卫会**立即 fail-fast**
@@ -269,19 +269,19 @@ tianshu.tools.workspaces-root=/var/lib/tianshu/workspaces
 容器（推荐，TLS 在网关层终结）：
 
 ```bash
-docker run -d --name tianshu \
+docker run -d --name Axiflux \
   -e SPRING_PROFILES_ACTIVE=prod \
-  -e TIANSHU_DEPLOYMENT_MODE=saas \
-  -e TIANSHU_TOOLS_WORKSPACESENABLED=true \
-  -e TIANSHU_TOOLS_WORKSPACESROOT=/var/lib/tianshu/workspaces \
+  -e AXIFLUX_DEPLOYMENT_MODE=saas \
+  -e AXIFLUX_TOOLS_WORKSPACESENABLED=true \
+  -e AXIFLUX_TOOLS_WORKSPACESROOT=/var/lib/Axiflux/workspaces \
   -e PG_URL=... -e PG_PASSWORD=... -e REDIS_HOST=... -e REDIS_PASSWORD=... \
   -e ARK_API_KEY=... -e OIDC_ISSUER_URI=... \
   -e STRIPE_SECRET_KEY=sk_live_... -e STRIPE_WEBHOOK_SECRET=whsec_... \
-  -e TIANSHU_PUBLIC_URL=https://app.example.com \
-  -p 8080:8080 tianshu:latest
+  -e AXIFLUX_PUBLIC_URL=https://app.example.com \
+  -p 8080:8080 axiflux:latest
 ```
 
-> 私有化单机不设 `TIANSHU_DEPLOYMENT_MODE`（即 standalone），无需开启工作区隔离。
+> 私有化单机不设 `AXIFLUX_DEPLOYMENT_MODE`（即 standalone），无需开启工作区隔离。
 
 ### 6.7 上线检查
 
@@ -301,7 +301,7 @@ docker run -d --name tianshu \
 mvn clean install -DskipTests
 ```
 
-改 UI 后：先在 `tianshu-app/ui` 跑 `npm run build`（产物输出到 `static`），再 `mvn package`。
+改 UI 后：先在 `axiflux-app/ui` 跑 `npm run build`（产物输出到 `static`），再 `mvn package`。
 
 重部署顺序：
 
@@ -330,11 +330,11 @@ mvn clean install -DskipTests
 
 ## 9. 独立服务：Skill Registry
 
-`tianshu-registry` 是与主应用解耦的**技能注册中心**（默认 8090），不走 local/dev/test/prod
+`axiflux-registry` 是与主应用解耦的**技能注册中心**（默认 8090），不走 local/dev/test/prod
 四档，而是单一 `application.yml` + 环境变量。启动：`scripts\registry.bat`，
 密钥模板 `env/env.registry.bat.example`。完整手册见 **[registry.md](registry.md)**。
 
-主应用通过 `tianshu.skills.registry-url=http://localhost:8090` 把它作为"技能市场"后端；
+主应用通过 `axiflux.skills.registry-url=http://localhost:8090` 把它作为"技能市场"后端；
 注册中心停服不影响本地与已装技能。
 
 ---

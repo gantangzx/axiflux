@@ -1,4 +1,4 @@
-﻿target/
+target/
 */target/
 # Scratch output dir used when compiling without Maven
 .build/
@@ -37,7 +37,7 @@ skills/*
 data/
 
 
-# tianshu-registry runtime artifacts (logs/ above already covers registry.log)
+# axiflux-registry runtime artifacts (logs/ above already covers registry.log)
 setenv-registry.bat
 registry-blobs/
 registry-keys/

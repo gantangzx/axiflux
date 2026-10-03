@@ -1,9 +1,9 @@
 # ============================================================================
-# 天枢 私有化生产部署 (docker compose)
+# AxiFlux 私有化生产部署 (docker compose)
 #
 # 目标：离线环境一键起 PostgreSQL(+pgvector) + Redis + 应用，全部数据落宿主卷。
 # 用法：
-#   docker compose -f docker-compose.prod.yml --env-file conf/tianshu.env up -d
+#   docker compose -f docker-compose.prod.yml --env-file conf/axiflux.env up -d
 #
 # 与 docker-compose.yml（开发用）的差异：
 #   1) 不暴露数据库端口到公网（仅内部网络）
@@ -15,10 +15,10 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: tianshu-postgres
+    container_name: axiflux-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: tianshu
+      POSTGRES_DB: Axiflux
       POSTGRES_USER: ${PG_USER:-postgres}
       POSTGRES_PASSWORD: ${PG_PASSWORD:?PG_PASSWORD is required}
       TZ: Asia/Shanghai
@@ -45,7 +45,7 @@ services:
       - -c
       - log_min_duration_statement=2000
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d tianshu"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d Axiflux"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -60,7 +60,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: tianshu-redis
+    container_name: axiflux-redis
     restart: unless-stopped
     environment:
       TZ: Asia/Shanghai
@@ -91,9 +91,9 @@ services:
       driver: json-file
       options: { max-size: "20m", max-file: "3" }
 
-  tianshu:
-    image: ${TIANSHU_IMAGE:-tianshu:1.0.0}
-    container_name: tianshu-app
+  axiflux:
+    image: ${AXIFLUX_IMAGE:-axiflux:1.0.0}
+    container_name: axiflux-app
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
@@ -103,31 +103,31 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       TZ: Asia/Shanghai
-      PG_URL: jdbc:postgresql://postgres:5432/tianshu
+      PG_URL: jdbc:postgresql://postgres:5432/Axiflux
       PG_USER: ${PG_USER:-postgres}
       PG_PASSWORD: ${PG_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      TIANSHU_PUBLIC_URL: ${TIANSHU_PUBLIC_URL:-http://localhost:8080}
+      AXIFLUX_PUBLIC_URL: ${AXIFLUX_PUBLIC_URL:-http://localhost:8080}
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       AUTH_SECRET: ${AUTH_SECRET:-}
       SESSION_PROVIDER: ${SESSION_PROVIDER:-jpa}
       VECTOR_PROVIDER: ${VECTOR_PROVIDER:-pgvector}
       ARK_API_KEY: ${ARK_API_KEY:-}
       EMBED_API_KEY: ${EMBED_API_KEY:-}
-      # 企业版（未购买时保持 false；EE 镜像内含 tianshu-ee-*.jar 时按需开启）
-      TIANSHU_EE_ENABLED: ${TIANSHU_EE_ENABLED:-false}
-      TIANSHU_EE_SAML_ENABLED: ${TIANSHU_EE_SAML_ENABLED:-false}
-      TIANSHU_EE_SCIM_ENABLED: ${TIANSHU_EE_SCIM_ENABLED:-false}
-      TIANSHU_EE_SCIM_TOKEN: ${TIANSHU_EE_SCIM_TOKEN:-}
-      TIANSHU_EE_AUDIT_ENABLED: ${TIANSHU_EE_AUDIT_ENABLED:-false}
-      TIANSHU_EE_AUDIT_SYSLOG_HOST: ${TIANSHU_EE_AUDIT_SYSLOG_HOST:-}
-      TIANSHU_EE_AUDIT_WEBHOOK_URL: ${TIANSHU_EE_AUDIT_WEBHOOK_URL:-}
+      # 企业版（未购买时保持 false；EE 镜像内含 axiflux-ee-*.jar 时按需开启）
+      AXIFLUX_EE_ENABLED: ${AXIFLUX_EE_ENABLED:-false}
+      AXIFLUX_EE_SAML_ENABLED: ${AXIFLUX_EE_SAML_ENABLED:-false}
+      AXIFLUX_EE_SCIM_ENABLED: ${AXIFLUX_EE_SCIM_ENABLED:-false}
+      AXIFLUX_EE_SCIM_TOKEN: ${AXIFLUX_EE_SCIM_TOKEN:-}
+      AXIFLUX_EE_AUDIT_ENABLED: ${AXIFLUX_EE_AUDIT_ENABLED:-false}
+      AXIFLUX_EE_AUDIT_SYSLOG_HOST: ${AXIFLUX_EE_AUDIT_SYSLOG_HOST:-}
+      AXIFLUX_EE_AUDIT_WEBHOOK_URL: ${AXIFLUX_EE_AUDIT_WEBHOOK_URL:-}
       JAVA_OPTS: ${JAVA_OPTS:--Xms1g -Xmx2g -XX:MaxRAMPercentage=75 -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai}
     volumes:
-      - ./data:/data/tianshu
-      - ./logs:/var/log/tianshu
+      - ./data:/data/Axiflux
+      - ./logs:/var/log/Axiflux
     read_only: true
     tmpfs:
       - /tmp:rw,size=256m
@@ -149,6 +149,6 @@ services:
 
 volumes:
   pg-data:
-    name: tianshu-pg-data
+    name: axiflux-pg-data
   redis-data:
-    name: tianshu-redis-data
+    name: axiflux-redis-data

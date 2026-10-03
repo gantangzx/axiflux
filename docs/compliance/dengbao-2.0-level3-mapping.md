@@ -1,4 +1,4 @@
-# 天枢 等保 2.0 三级 对照说明（技术与产品侧）
+# AxiFlux 等保 2.0 三级 对照说明（技术与产品侧）
 
 > 用途：客户/测评机构做等保 2.0 三级测评时的产品能力对照材料。
 > 声明：本文仅列出**产品可提供的技术能力与证据**，不构成测评结论；最终结论由测评机构依据现场部署给出。
@@ -7,7 +7,7 @@
 
 ## 1. 身份鉴别（8.1.4.1）
 
-| 控制项 | 天枢能力 | 证据/配置 | 状态 |
+| 控制项 | AxiFlux能力 | 证据/配置 | 状态 |
 |---|---|---|---|
 | 身份标识唯一 | 用户/账号唯一 ID（ULID），组织内 RBAC | `user_account`、`/api/v1/orgs/*` | ✅ |
 | 口令复杂度与更换周期 | 本地账号登录（`/api/v1/auth/login`）；初始口令随机生成且仅打印一次 | `install.sh` 生成 `initial-admin-password.txt`(600) | 🟡 复杂度策略需按客户策略配置/外接 IdP |
@@ -17,7 +17,7 @@
 
 ## 2. 访问控制（8.1.4.2）
 
-| 控制项 | 天枢能力 | 证据 | 状态 |
+| 控制项 | AxiFlux能力 | 证据 | 状态 |
 |---|---|---|---|
 | 主体/客体授权 | 6 层工具策略链（ALLOW/ASK/DENY）、Scope 最小权限、组织 RBAC（OWNER/ADMIN/MEMBER） | `ToolPolicyChain`、`ScopePolicy`、`/api/v1/orgs/{id}/governance` | ✅ |
 | 默认拒绝 | 安全链白名单制（`anyExchange().authenticated()`），策略链 fail-closed（异常即 DENY） | `SecurityConfig`、策略链测试 | ✅ |
@@ -27,7 +27,7 @@
 
 ## 3. 安全审计（8.1.4.3）
 
-| 控制项 | 天枢能力 | 证据 | 状态 |
+| 控制项 | AxiFlux能力 | 证据 | 状态 |
 |---|---|---|---|
 | 审计覆盖 | 登录、审批决定、配置热更、订阅状态、配额发放、工具执行、组织治理变更 | `AuditService`、`audit` 表、`/api/v1/audits/*` | ✅ |
 | 审计记录要素 | 时间、主体（user/org）、动作、对象、结果 | `AuditController.tool-executions`/`alerts` | ✅ |
@@ -37,7 +37,7 @@
 
 ## 4. 入侵防范（8.1.4.4）
 
-| 控制项 | 天枢能力 | 证据 | 状态 |
+| 控制项 | AxiFlux能力 | 证据 | 状态 |
 |---|---|---|---|
 | 最小化服务与端口 | 仅 8080（应用）+ PG/Redis 内网 | `docker-compose.prod.yml` 不暴露 DB 端口 | ✅ |
 | 工具执行沙箱 | `CodeExecutor` 环境变量清洗（`scrubEnvironment`）、命令沙箱、工作区白名单 | `CommandSandboxTest`(30 项)、`file-allowed-roots` | ✅ |
@@ -48,7 +48,7 @@
 
 ## 5. 数据完整性与保密性（8.1.4.7/8）
 
-| 控制项 | 天枢能力 | 证据 | 状态 |
+| 控制项 | AxiFlux能力 | 证据 | 状态 |
 |---|---|---|---|
 | 传输加密 | HTTPS/WSS（LB 终结）；PG/Redis 可启 TLS | `ha-deployment.md` | 🟡 需客户证书与 PG/Redis TLS 配置 |
 | 存储加密 | 依赖磁盘/库层加密（LUKS、PG TDE、云盘加密） | — | 🟡 需客户基础设施 |
@@ -73,7 +73,7 @@
 
 1. 本对照说明（含版本号与部署拓扑）
 2. 部署架构图与数据流图（`ha-deployment.md` + 现场拓扑）
-3. 安全配置基线（`conf/tianshu.env` 脱敏副本 + LB/Nginx 配置 + 安全加固清单）
+3. 安全配置基线（`conf/axiflux.env` 脱敏副本 + LB/Nginx 配置 + 安全加固清单）
 4. 审计能力演示脚本（登录/审批/配置变更 → `/api/v1/audits/*` 查询）
 5. 备份恢复演练报告（实测 RPO/RTO）
 6. 依赖与许可清单（`THIRD-PARTY-LICENSES.md`）

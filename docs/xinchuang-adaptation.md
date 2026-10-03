@@ -1,4 +1,4 @@
-# 天枢 信创适配说明（达梦 / 金仓 / 麒麟 / 统信 / 鲲鹏 / 海光）
+# AxiFlux 信创适配说明（达梦 / 金仓 / 麒麟 / 统信 / 鲲鹏 / 海光）
 
 > 状态标注：✅ 已支持并验证 ｜ 🟡 已支持但需现场验证 ｜ ⛔ 未支持/有计划
 > 本文的 🟡/⛔ 项建议在现场实施前确认，避免「信创要求」在验收阶段变成阻塞项。
@@ -64,15 +64,15 @@
   # 目标机快速体检
   uname -m; cat /etc/os-release; java -version; timedatectl; getenforce || true
   # 目录授权（等保加固常见坑）
-  semanage fcontext -a -t var_log_t "/opt/tianshu/logs(/.*)?" || true
-  restorecon -R /opt/tianshu
+  semanage fcontext -a -t var_log_t "/opt/Axiflux/logs(/.*)?" || true
+  restorecon -R /opt/Axiflux
   ```
 - 启动脚本已统一使用 `EnvironmentFile`，不依赖 bash 特性，可直接在麒麟/统信上用 systemd。
 
 ## 4. 国产 CPU 适配（鲲鹏 aarch64 / 海光 x86）
 
 - 海光：x86_64 兼容，与现有构建产物**二进制一致**，风险最低（🟡 仅需现场压测）。
-- 鲲鹏：需 aarch64 构建或跨平台运行；`tianshu-app.jar` 为平台无关字节码，**依赖的是 JVM 而非 CPU**，因此只需 aarch64 版 JDK 25 + 无本地库（native lib）依赖。
+- 鲲鹏：需 aarch64 构建或跨平台运行；`axiflux-app.jar` 为平台无关字节码，**依赖的是 JVM 而非 CPU**，因此只需 aarch64 版 JDK 25 + 无本地库（native lib）依赖。
 - 当前依赖中受 CPU 架构影响的部分为：`netty` 传输（自带 native 可选，缺省纯 Java，安全）、PG JDBC（纯 Java）。
 - 压测指标建议：并发会话数、首字节时延、向量检索 P95、长连接稳定性（WS/SSE 各 2 h）。
 
@@ -94,7 +94,7 @@
 对接动作：在控制台「模型」页或 `sysConfigService` 增加 provider（base-url + key + model），
 无需改代码（8 个 provider 已注册，路由默认 `ark-claude-haiku`，可切换）。
 
-> 内网模型时必须同时部署 **embedding 服务**（`EMBED_API_KEY` + `tianshu.vector.embed-url`），否则长期记忆不可用。
+> 内网模型时必须同时部署 **embedding 服务**（`EMBED_API_KEY` + `axiflux.vector.embed-url`），否则长期记忆不可用。
 
 ## 6. 现场适配检查清单
 

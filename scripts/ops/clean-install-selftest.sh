@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 干净机自助安装自测脚本 (Linux / WSL, 无需 root)
+# AxiFlux 干净机自助安装自测脚本 (Linux / WSL, 无需 root)
 #
 # 目标：以「陌生用户 + 隔离环境」身份，从零把离线包装起来并跑通，验证
 #       docs/one-person-roadmap.md M2-1 —— 客户能否自助安装、自助使用、自助排障。
@@ -16,11 +16,11 @@
 #   - 或提供 --pgbin/--redisbin 指向解压好的二进制目录
 #
 # 用法:
-#   ./clean-install-selftest.sh --jar /abs/tianshu-app-*.jar [选项]
+#   ./clean-install-selftest.sh --jar /abs/axiflux-app-*.jar [选项]
 #
 # 选项:
 #   --jar PATH         应用 fat jar（必填）
-#   --work DIR         隔离工作目录（默认 /tmp/tianshu-selftest-<rand>）
+#   --work DIR         隔离工作目录（默认 /tmp/axiflux-selftest-<rand>）
 #   --port N           应用端口（默认 18080）
 #   --pg-port N        PostgreSQL 端口（默认 15432）
 #   --redis-port N     Redis 端口（默认 16379）
@@ -63,10 +63,10 @@ done
 [ -f "$JAR" ] || die "fat jar 不存在: $JAR"
 JAR=$(cd "$(dirname "$JAR")" && pwd)/$(basename "$JAR")
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-WORK="${WORK:-/tmp/tianshu-selftest-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
+WORK="${WORK:-/tmp/axiflux-selftest-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
 
 PGDIR="$WORK/pg"; REDISDIR="$WORK/redis"
-APPDIR="$WORK/app"; CONF="$WORK/tianshu.env"; LOGDIR="$WORK/logs"
+APPDIR="$WORK/app"; CONF="$WORK/axiflux.env"; LOGDIR="$WORK/logs"
 PG_PID=""; REDIS_PID=""; APP_PID=""
 mkdir -p "$PGDIR" "$REDISDIR" "$APPDIR" "$LOGDIR"
 ISSUES="$WORK/ISSUES.txt"; : > "$ISSUES"
@@ -143,8 +143,8 @@ export LD_LIBRARY_PATH="$(dirname "$(dirname "$PG_BIN")")/lib:${LD_LIBRARY_PATH:
   || die "PostgreSQL 启动失败，见 $LOGDIR/pg.log"
 PG_PID=$(head -1 "$PGDIR/postmaster.pid" 2>/dev/null || echo "")
 PSQL="$(dirname "$PG_BIN")/psql"
-"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d postgres -c "CREATE DATABASE tianshu ENCODING 'UTF8'" >/dev/null
-if "$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d tianshu -c "CREATE EXTENSION vector" >/dev/null 2>&1; then
+"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d postgres -c "CREATE DATABASE Axiflux ENCODING 'UTF8'" >/dev/null
+if "$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d Axiflux -c "CREATE EXTENSION vector" >/dev/null 2>&1; then
   ok "pgvector 扩展可用"
 else
   issue "卡点: pgvector 扩展创建失败（需安装 postgresql-16-pgvector / pgvector.io 包）"
@@ -166,8 +166,8 @@ ADMIN_PASS=$(head -c 18 /dev/urandom | base64 | tr -d '/+=' | head -c 18)
 cat > "$CONF" <<EOF
 SPRING_PROFILES_ACTIVE=prod
 SERVER_PORT=$PORT
-TIANSHU_PUBLIC_URL=http://127.0.0.1:$PORT
-PG_URL=jdbc:postgresql://127.0.0.1:$PG_PORT/tianshu
+AXIFLUX_PUBLIC_URL=http://127.0.0.1:$PORT
+PG_URL=jdbc:postgresql://127.0.0.1:$PG_PORT/Axiflux
 PG_USER=postgres
 PG_PASSWORD=
 REDIS_HOST=127.0.0.1
@@ -177,14 +177,14 @@ AUTH_ENABLED=true
 AUTH_SECRET=$AUTH_SECRET
 SESSION_PROVIDER=jpa
 VECTOR_PROVIDER=pgvector
-TIANSHU_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASS
-TIANSHU_EE_ENABLED=$([ "$EE" = "1" ] && echo true || echo false)
+AXIFLUX_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASS
+AXIFLUX_EE_ENABLED=$([ "$EE" = "1" ] && echo true || echo false)
 EOF
 chmod 600 "$CONF"
 
 # ---------- 6. 启动应用（Flyway 迁移） -----------------------------------------
 log "6/7 启动应用（首次 Flyway 迁移，观察启动耗时）"
-JAR_IN_PKG=$(find "$PKG_DIR" -maxdepth 1 -name 'tianshu-app-*.jar' | head -1)
+JAR_IN_PKG=$(find "$PKG_DIR" -maxdepth 1 -name 'axiflux-app-*.jar' | head -1)
 APP_START_T=$(date +%s)
 set -a; . "$CONF"; set +a
 nohup "$JAVA_BIN" -Xms512m -Xmx1500m -Dfile.encoding=UTF-8 -jar "$JAR_IN_PKG" \
@@ -208,7 +208,7 @@ fi
 log "7/7 运行 verify-install.sh 出具验收结论"
 VR=0
 bash "$ROOT/scripts/ops/verify-install.sh" --url "http://127.0.0.1:$PORT" \
-   --user tianshu --password "$ADMIN_PASS" \
+   --user Axiflux --password "$ADMIN_PASS" \
    --json "$LOGDIR/verify-install.json" $([ "$EE" = "1" ] && echo --expect-ee) \
    | tee "$LOGDIR/verify.out.log" || VR=$?
 

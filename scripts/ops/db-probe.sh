@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 Agent 平台 —— 数据库探测脚本（信创/POC 现场用）
+# AxiFlux Agent 平台 —— 数据库探测脚本（信创/POC 现场用）
 #
-# 用途：在目标环境回答「这个数据库能不能跑天枢」这个前置问题，并给出结论与建议。
+# 用途：在目标环境回答「这个数据库能不能跑AxiFlux」这个前置问题，并给出结论与建议。
 #   1) TCP 可达性（任意数据库）
 #   2) 若为 PostgreSQL：版本、pgvector 扩展、必需扩展、字符集、时区、连接数
 #   3) 若提供 JDBC 驱动：返回 DatabaseProductName/Version（识别达梦/金仓/其他）
@@ -10,7 +10,7 @@
 #
 # 用法：
 #   ./db-probe.sh --host 10.0.0.11 --port 5432 --mode auto
-#   ./db-probe.sh --host 10.0.0.11 --port 5432 --mode psql --user tianshu --password '***' --db tianshu
+#   ./db-probe.sh --host 10.0.0.11 --port 5432 --mode psql --user Axiflux --password '***' --db Axiflux
 #   ./db-probe.sh --jdbc-url 'jdbc:dm://10.0.0.11:5236' --user SYSDBA --password '***' \
 #                 --driver-jar /opt/drivers/DmJdbcDriver18.jar --mode jdbc
 #
@@ -189,7 +189,7 @@ JAVA
   rm -rf "$dir"
 }
 
-echo "天枢数据库探测 (db-probe)"
+echo "AxiFlux数据库探测 (db-probe)"
 echo "  目标: ${JDBC_URL:-$HOST:$PORT}  模式: $MODE"
 echo ""
 if [ -n "$HOST" ]; then

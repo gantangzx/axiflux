@@ -1,0 +1,99 @@
+# ============================================================================
+# Axiflux 开发联调环境 (profile = dev)
+#
+# 定位：多人共享的开发联调环境。“可联调、可排障”优先：
+#   - 开启鉴权（本地账号注册/登录，HS256），但保留自服务签发端点
+#   - 工具策略 blacklist（默认全开，仅拉黑高危项），允许访问内网
+#   - Stripe【测试模式】端到端联调；webhook 走 `stripe listen` CLI 隧道
+#   - DEBUG 日志
+#
+# 激活：SPRING_PROFILES_ACTIVE=dev（scripts/start.bat dev）
+# 密钥：全部走环境变量（setenv 模板 / CI secrets），本文件无明文敏感信息。
+#
+# 晋升路径：local -> dev -> test -> prod。test 才是类生产配置，不要用 dev 验证
+# 生产加固策略。
+# ============================================================================
+
+spring:
+  application:
+    name: axiflux-dev
+  datasource:
+    url: ${PG_URL:jdbc:postgresql://localhost:5432/AXIFLUX_dev}
+    username: ${PG_USER:Axiflux}
+    password: ${PG_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+
+axiflux:
+  auth:
+    enabled: true
+    secret: ${AUTH_SECRET:}                 # 必填，留空启动失败（fail-fast）
+    default-ttl-seconds: 3600
+    token-endpoint-enabled: true           # dev 保留自服务签发端点（test/prod 关闭）
+    require-explicit-scopes: false
+
+  billing:
+    enabled: true
+    public-url: ${AXIFLUX_PUBLIC_URL:http://localhost:8080}
+    secret-key: ${STRIPE_SECRET_KEY:}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}   # stripe listen 打印的 whsec_
+    trial-days: 14
+
+    # tier -> price（发起 Checkout）。仅 Stripe【测试模式】价格，无安全风险；
+    # 换成自己账户的测试价格后保持正反映射一致。映射值统一小写（free/pro/team）。
+    tier-price:
+      pro: price_1UIPbdEflqQPvhmbl7v5TKZC
+      team: price_1UIlYKEflqQPvhmbb0gGqZy9
+    # price -> tier（webhook 回推套餐）
+    price-plan:
+      price_1UIPbdEflqQPvhmbl7v5TKZC: pro
+      price_1UIlYKEflqQPvhmbb0gGqZy9: team
+
+    quota:
+      enabled: true
+
+  session:
+    provider: jpa
+
+  vector:
+    provider: ${VECTOR_PROVIDER:pgvector}
+    dimension: 2048
+    metric: cosine
+    collectionName: AXIFLUX_memory_dev
+    embed-url: https://ark.cn-beijing.volces.com/api/v3/embeddings/multimodal
+    embed-model: doubao-embedding-vision-251215
+    embed-api-key: ${EMBED_API_KEY:${ARK_API_KEY:}}
+
+  scheduler:
+    enabled: true
+    poolSize: 4
+    lock-provider: redis
+
+  agent:
+    maxIterations: 25
+    toolTimeoutSeconds: 60
+    spawnTimeoutSeconds: 300
+
+  tools:
+    policy-mode: blacklist
+    policy-blocked: spawn_task              # dev 禁止自繁殖子任务
+    allow-private-network: true            # dev 允许内网/回环（test/prod 必须 false）
+    code-executor-sandbox: local
+    auto-approve-budget-enabled: true
+    auto-approve-budget-default: 5
+    auto-approve-budget-risk-ceiling: WRITE
+    auto-approve-budgets:
+      file_write: 2
+
+logging:
+  level:
+    com.gantang.axiflux: DEBUG
+    org.springframework.security: INFO

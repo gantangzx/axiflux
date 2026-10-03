@@ -1,7 +1,7 @@
 # Agent Eval Harness 架构设计方案
 
 > **实现状态（2026-09-04）**：**M1 + M2 + M3 已落地**。
-> - M1/M2：`tianshu-eval` 模块、Scenario YAML/Loader、ReplayLlmClient、FakeTool/
+> - M1/M2：`reaxon-eval` 模块、Scenario YAML/Loader、ReplayLlmClient、FakeTool/
 >   SideEffectStore、TraceRecorderHook、TraceAssertions；5 个 replay 场景在
 >   `src/test/resources/eval/`，`ScenarioRunnerTest` 全绿。
 > - M3：**live 模式全链路**——`RecordingLlmClient`（录制调用/token/延迟/错误，按 turn 分组）、
@@ -25,7 +25,7 @@
 > 待做：定时 live 趋势（nightly 跑 eval-live + report.json 留档对比，CLI 已就绪）。
 >
 > 版本：v0.3（2026-09-04，M1-M4 已实现；M4 剩余 nightly 调度为运维接入）
-> 目标：为 tianshu-java 建立**可重复、低成本、可进 CI** 的 agent 行为回归与质量评估体系。
+> 目标：为 axiflux-java 建立**可重复、低成本、可进 CI** 的 agent 行为回归与质量评估体系。
 > 方法论参考：KC-Bench（有状态工具 + 用户模拟器 + 确定性环境断言，arXiv 2609.03588）；
 > 行业依据：LangChain《State of Agent Engineering 2026》——质量是生产头号障碍（32%），
 > 可观测性采用率 89% 但 eval 仅 52%。
@@ -45,7 +45,7 @@
 | 轨迹观察点 | `AgentHook` SPI：onTurnStart / onBeforeModelCall / onToolResult / onTurnEnd | `api/agent/AgentHook.java` |
 | 流式事件 | `AgentEvent`：TEXT_TOKEN / TOOL_CALL / TOOL_RESULT / APPROVAL_REQUIRED / DONE / ERROR | `api/agent/AgentEvent.java` |
 | LLM 切换点 | `LlmClient` 接口（complete / completeStream / completeWithTools）+ `ModelRouter` | `api/llm/` |
-| 集成测试底座 | Testcontainers、PGVector | tianshu-storage / tianshu-spring 测试 |
+| 集成测试底座 | Testcontainers、PGVector | axiflux-storage / axiflux-spring 测试 |
 
 ### 缺口
 
@@ -60,15 +60,15 @@
 2. **测行为，不测实现**：断言基于**可观察轨迹**（事件流 + hook 回调 + 环境终态），不依赖 ReactiveAgent 内部结构。
 3. **环境终态断言 > 文本相似度**（KC-Bench 核心启示）：agent 干没干对，看 fake 工具收到的副作用（发了邮件给对的人、写了对的文件），而不是回复措辞像不像。
 4. **失败可固化**：live 模式跑出的失败轨迹，一键转成 replay 场景进 CI。
-5. **core 级运行**：harness 依赖 tianshu-core，不依赖 Spring；Spring 装配另写薄适配。
+5. **core 级运行**：harness 依赖 reaxon-core，不依赖 Spring；Spring 装配另写薄适配。
 
 ## 3. 模块与组件
 
-新建 Maven 模块 **`tianshu-eval`**（`tianshu-core` 之上，examples/spring 都可依赖）：
+新建 Maven 模块 **`reaxon-eval`**（`reaxon-core` 之上，examples/spring 都可依赖）：
 
 ```
-tianshu-eval/
-  src/main/java/com/gantang/tianshu/eval/
+reaxon-eval/
+  src/main/java/com/gantang/reaxon/eval/
     scenario/
       Scenario.java            # 场景模型（record）
       ScenarioLoader.java      # YAML/JSON -> Scenario（Jackson）
@@ -225,7 +225,7 @@ TraceAssertions.assertThat(trace)
 
 | 里程碑 | 内容 | 验收 |
 |---|---|---|
-| **M1 骨架** | tianshu-eval 模块；Scenario YAML 模型 + Loader；ReplayLlmClient（把 StubLlmClient 提升并泛化）；FakeToolRegistry；TraceRecorderHook + EventCollector；3 个示例场景（文本/单工具/策略拒绝）跑通 | `mvn test -Peval` 绿；场景从 YAML 跑 |
+| **M1 骨架** | reaxon-eval 模块；Scenario YAML 模型 + Loader；ReplayLlmClient（把 StubLlmClient 提升并泛化）；FakeToolRegistry；TraceRecorderHook + EventCollector；3 个示例场景（文本/单工具/策略拒绝）跑通 | `mvn test -Peval` 绿；场景从 YAML 跑 |
 | **M2 断言库 + 场景铺开** | TraceAssertions 全量（序列/参数 jsonPath/副作用/事件/错误分类）；StatefulToolStub；场景 1-10 全补齐 | 框架核心行为全部有场景覆盖；PR 改 ReactiveAgent 有回归网 |
 | **M3 live + 录制** ✅ | RecordingLlmClient；OpenAiCompatLlmClient（零 Spring）；LlmJudgeGrader + rubric；EvalReport（markdown/JSON，通过率/token/p95）；`--freeze` 失败转 replay；EvalMain CLI | 真实 ARK 冒烟：live PASS + judge 4.6/5；freeze→replay 逐字重现；13 个单测全绿 |
 | **M4 用户模拟器 + CI 门禁** ✅ | Turn 条件分支（ifContains/ifNotContains/say）；argsContains 参数断言；fromTurn 轮次断言；judge 看完整对话；replay 场景自动发现进 PR 门禁；freeze 支持分支轮次 | 多轮反问场景真实 ARK PASS、judge 5/5/5；19 个单测全绿。nightly 定时 live 为运维接入（CLI 已就绪） |

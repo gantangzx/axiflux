@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 私有化交付验收脚本 (Linux)
+# AxiFlux 私有化交付验收脚本 (Linux)
 #
 # 用途：在客户现场完成安装后，30 分钟内跑完本脚本即可出具验收结论。
 #      全程只读：不写库、不改配置、不触发任何计费动作。
@@ -18,7 +18,7 @@ USER=""
 PASSWORD=""
 JSON_OUT=""
 EXPECT_EE=0
-ADMIN_TOKEN="${TIANSHU_ADMIN_TOKEN:-}"
+ADMIN_TOKEN="${AXIFLUX_ADMIN_TOKEN:-}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -66,7 +66,7 @@ except Exception:
 have() { command -v "$1" >/dev/null 2>&1; }
 
 echo "====================================================================="
-echo " 天枢 私有化交付验收  $(date '+%Y-%m-%d %H:%M:%S')"
+echo " AxiFlux 私有化交付验收  $(date '+%Y-%m-%d %H:%M:%S')"
 echo " 目标: $BASE_URL"
 echo "====================================================================="
 printf '%-4s | %-34s | %s\n' LEVEL CHECK DETAIL
@@ -110,7 +110,7 @@ done
 # ---- 3. 静态前端 ------------------------------------------------------------
 C=$(code "$BASE_URL/")
 if [ "$C" = "200" ]; then
-  if grep -qi 'tianshu\|天枢' /tmp/_ts_body.$$ 2>/dev/null; then
+  if grep -qi 'Axiflux\|AxiFlux' /tmp/_ts_body.$$ 2>/dev/null; then
     record PASS "console-index" "200 + 品牌标识"
   else
     record PASS "console-index" "200"
@@ -125,7 +125,7 @@ if [ "$INFO" = "200" ]; then record PASS "actuator-info" "200"; else record WARN
 
 if have docker && docker ps --format '{{.Names}}' 2>/dev/null | grep -qi postgres; then
   SCHEMA=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
-  V=$(docker exec "$SCHEMA" psql -U "${PG_USER:-postgres}" -d "${PG_DB:-tianshu}" -tAc \
+  V=$(docker exec "$SCHEMA" psql -U "${PG_USER:-postgres}" -d "${PG_DB:-Axiflux}" -tAc \
       'select version from flyway_schema_history where success order by installed_rank desc limit 1' 2>/dev/null | tr -d '\r')
   if [ -n "$V" ]; then record PASS "flyway-schema-version" "V$V"; else record WARN "flyway-schema-version" "无法读取（容器名/凭据不符）"; fi
 else
@@ -196,7 +196,7 @@ check_list "api-config-settings" "/api/v1/config/settings"
 LC_LIC=$(auth_curl "/api/v1/admin/license")
 case "$LC_LIC" in
   2*) record PASS "api-license" "$LC_LIC" ;;
-  404) record WARN "api-license" "404 license 子系统未启用（tianshu.license.enabled=false，M2-2 再验）" ;;
+  404) record WARN "api-license" "404 license 子系统未启用（axiflux.license.enabled=false，M2-2 再验）" ;;
   401|403) record WARN "api-license" "HTTP $LC_LIC（账号缺 scope）" ;;
   *) record FAIL "api-license" "HTTP $LC_LIC" ;;
 esac
@@ -208,7 +208,7 @@ if [ "$EXPECT_EE" = "1" ]; then
   if [ "$EC" = "200" ]; then
     record PASS "ee-edition-endpoint" "200（企业版分发）"
   else
-    record FAIL "ee-edition-endpoint" "期望企业版但 HTTP $EC（404=未包含 tianshu-ee-*.jar，401=已登录账号无权限）"
+    record FAIL "ee-edition-endpoint" "期望企业版但 HTTP $EC（404=未包含 axiflux-ee-*.jar，401=已登录账号无权限）"
   fi
 elif [ "$EC" = "200" ]; then
   record PASS "ee-edition-endpoint" "200（企业版分发）"

@@ -7,7 +7,7 @@
       本脚本直接读取发布 fat jar 的 BOOT-INF/lib，保证清单与产物一致（而非靠人写）。
 
 用法:
-  python3 gen-third-party-licenses.py <tianshu-app.jar> [-o THIRD-PARTY-LICENSES.md] [--version 1.0.0]
+  python3 gen-third-party-licenses.py <axiflux-app.jar> [-o THIRD-PARTY-LICENSES.md] [--version 1.0.0]
 
 已知许可仅覆盖清单内常见组件（KNOWN）；未覆盖项标为「待核验」，需以各上游 POM 为准。
 高风险许可（LGPL/GPL/EPL/MPL 等 copyleft）单独列出，提示法务确认义务。
@@ -132,7 +132,7 @@ def collect(jar_path):
     for l in libs:
         name, ver = split_name(l)
         # 本项目自有模块不计入第三方清单
-        if name.startswith("tianshu-"):
+        if name.startswith("axiflux-"):
             own.setdefault(name, set()).add(ver)
             continue
         rows.setdefault(name, set()).add(ver)
@@ -157,12 +157,12 @@ def main():
 
     lines = []
     lines.append("# 第三方依赖与许可清单（THIRD-PARTY LICENSES）\n")
-    lines.append("> 产品：天枢 Agent 平台（Tianshu Agent Platform） 版本：%s  \n" % args.version)
+    lines.append("> 产品：AxiFlux Agent 平台（Axiflux Platform） 版本：%s  \n" % args.version)
     lines.append("> 生成时间：%s ｜ 生成方式：`scripts/ops/gen-third-party-licenses.py` 直读发布 jar 的 `BOOT-INF/lib`  \n" % date.today().isoformat())
     lines.append("> 本清单与 jar 内容一一对应（共 %d 个第三方 jar，%d 个不同组件）。\n" % (
         sum(len(v) for v in rows.values()) or sum(1 for _ in rows), len(rows)))
     lines.append("\n## 0. 声明\n")
-    lines.append("- 本产品自身代码以 **Apache-2.0** 许可（社区版）与 **Tianshu Enterprise License 1.0**（企业版模块，见 `LICENSE-EE.md`）分发。\n")
+    lines.append("- 本产品自身代码以 **Apache-2.0** 许可（社区版）与 **Axiflux Enterprise License 1.0**（企业版模块，见 `LICENSE-EE.md`）分发。\n")
     lines.append("- 本产品**以二进制依赖形式**（未修改源码）使用以下第三方组件；各组件的版权归其各自作者所有，许可全文见各上游项目。\n")
     lines.append("- 交付时随附 `LICENSE`（Apache-2.0 正文）、`NOTICE`（版权与归属声明）与本清单。\n")
     lines.append("- 表内许可为**依据上游公开发布信息整理**，最终以各组件仓库/发行包内的 LICENSE 文件为准；带 ⚠ 的 copyleft 组件建议由法务在商务合同前确认义务履行方式。\n")

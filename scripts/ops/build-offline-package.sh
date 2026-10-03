@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 离线分发包组装脚本 (Linux)
+# AxiFlux 离线分发包组装脚本 (Linux)
 #
 # 目标：把已构建合格的 fat jar 组装成 docs/offline-install.md §0 规定的标准
 #       离线交付目录，并生成 SHA256SUMS 与可分发 tar.gz。
 #       本脚本【只组装、不编译】——编译/前端构建请先按 offline-install.md §8 完成。
 #
 # 用法:
-#   ./build-offline-package.sh --jar ../../tianshu-app/target/tianshu-app-0.1.0-SNAPSHOT.jar \
+#   ./build-offline-package.sh --jar ../../axiflux-app/target/axiflux-app-0.1.0-SNAPSHOT.jar \
 #       --version 1.0.0 [--out /tmp/dist] [--jdk /path/to/jdk.tar.gz] [--ee]
 #
 # 选项:
@@ -15,7 +15,7 @@
 #   --version VER    分发包版本号（默认从 jar 文件名推断，如 0.1.0-SNAPSHOT）
 #   --out DIR        产物输出根目录（默认 ./target/dist）
 #   --jdk PATH|URL   内置 JDK：可为本地 tar.gz 或下载地址；解压后须含 bin/java
-#   --ee             企业版组装（同目录需能找到 tianshu-ee-*.jar，并带 LICENSE-EE.md）
+#   --ee             企业版组装（同目录需能找到 axiflux-ee-*.jar，并带 LICENSE-EE.md）
 #   --no-tar         只产出目录与 SHA256SUMS，不打 tar.gz
 #   --skip-check     跳过组装前的 check-package.py 质量门（不建议）
 # =============================================================================
@@ -53,13 +53,13 @@ done
 JAR=$(cd "$(dirname "$JAR")" && pwd)/$(basename "$JAR")
 
 if [ -z "$VERSION" ]; then
-  VERSION=$(basename "$JAR" | sed -E 's/^tianshu-app-(.*)\.jar$/\1/')
+  VERSION=$(basename "$JAR" | sed -E 's/^axiflux-app-(.*)\.jar$/\1/')
 fi
 [ -n "$VERSION" ] || die "无法推断版本号，请用 --version"
 OUT="${OUT:-$ROOT/target/dist}"
 
 JAR_NAME=$(basename "$JAR")
-PKG="tianshu-offline-$VERSION"
+PKG="axiflux-offline-$VERSION"
 STAGE="$OUT/$PKG"
 
 # ---------- 0. 组装前质量门 ---------------------------------------------------
@@ -81,10 +81,10 @@ log "2/7 拷贝应用 jar"
 cp -f "$JAR" "$STAGE/$JAR_NAME"
 if [ "$EE" = "1" ]; then
   JAR_DIR=$(dirname "$JAR")
-  EE_COUNT=$(find "$JAR_DIR" -maxdepth 1 -name 'tianshu-ee-*.jar' | wc -l | tr -d ' ')
-  [ "$EE_COUNT" != "0" ] || die "--ee 但 $JAR_DIR 下没有 tianshu-ee-*.jar"
-  find "$JAR_DIR" -maxdepth 1 -name 'tianshu-ee-*.jar' -exec cp -f {} "$STAGE/" \;
-  [ -f "$ROOT/tianshu-ee-core/LICENSE-EE.md" ] && cp -f "$ROOT/tianshu-ee-core/LICENSE-EE.md" "$STAGE/"
+  EE_COUNT=$(find "$JAR_DIR" -maxdepth 1 -name 'axiflux-ee-*.jar' | wc -l | tr -d ' ')
+  [ "$EE_COUNT" != "0" ] || die "--ee 但 $JAR_DIR 下没有 axiflux-ee-*.jar"
+  find "$JAR_DIR" -maxdepth 1 -name 'axiflux-ee-*.jar' -exec cp -f {} "$STAGE/" \;
+  [ -f "$ROOT/axiflux-ee-core/LICENSE-EE.md" ] && cp -f "$ROOT/axiflux-ee-core/LICENSE-EE.md" "$STAGE/"
   log "      EE 模块数: $EE_COUNT"
 fi
 
@@ -127,7 +127,7 @@ cp -f "$ROOT/NOTICE" "$STAGE/" 2>/dev/null || true
 
 # Flyway 迁移副本：优先从已构建的 storage jar 中解出（与交付物一致）
 MIG_WORK=$(mktemp -d)
-STORAGE_JAR=$(find "$ROOT/tianshu-storage/target" -maxdepth 1 -name 'tianshu-storage-*.jar' ! -name '*.original' | head -1 || true)
+STORAGE_JAR=$(find "$ROOT/axiflux-storage/target" -maxdepth 1 -name 'axiflux-storage-*.jar' ! -name '*.original' | head -1 || true)
 if [ -n "$STORAGE_JAR" ] && [ -f "$STORAGE_JAR" ]; then
   (cd "$MIG_WORK" && jar -xf "$STORAGE_JAR" db/migration) 2>/dev/null \
     || (cd "$MIG_WORK" && unzip -q "$STORAGE_JAR" 'db/migration/*')
@@ -135,7 +135,7 @@ fi
 if [ -d "$MIG_WORK/db/migration" ]; then
   cp -a "$MIG_WORK/db" "$STAGE/"
 else
-  SRC_MIG="$ROOT/tianshu-storage/src/main/resources/db/migration"
+  SRC_MIG="$ROOT/axiflux-storage/src/main/resources/db/migration"
   [ -d "$SRC_MIG" ] && cp -a "$SRC_MIG" "$STAGE/db/migration" || warn "未找到 Flyway 迁移副本"
 fi
 rm -rf "$MIG_WORK"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tianshu Skill Registry launcher (Linux / macOS).
+# Axiflux Skill Registry launcher (Linux / macOS).
 #
 # Usage: scripts/registry.sh [-f]
 #   default: background, logs to logs/registry.log
@@ -27,10 +27,10 @@ fi
 : "${JAVA_HOME:=}"
 if [[ -n "$JAVA_HOME" ]]; then JAVA_BIN="$JAVA_HOME/bin/java"; else JAVA_BIN="java"; fi
 
-APP_JAR="tianshu-registry/target/tianshu-registry-0.1.0-SNAPSHOT.jar"
+APP_JAR="axiflux-registry/target/axiflux-registry-0.1.0-SNAPSHOT.jar"
 if [[ ! -f "$APP_JAR" ]]; then
   echo "[ERROR] jar not found: $APP_JAR" >&2
-  echo "Build first:  mvn clean install -DskipTests -pl tianshu-registry -am" >&2
+  echo "Build first:  mvn clean install -DskipTests -pl axiflux-registry -am" >&2
   exit 1
 fi
 

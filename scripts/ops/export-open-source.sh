@@ -8,7 +8,7 @@
 # 不依赖评审自觉。
 #
 # 用法：
-#   bash scripts/ops/export-open-source.sh --out ../tianshu-opensource
+#   bash scripts/ops/export-open-source.sh --out ../axiflux-opensource
 #   # 检查快照后自行：cd <out> && git init && git add . && git commit ...
 #
 # 注意：默认不会推送任何内容；公开动作（git remote / push）由你显式执行。
@@ -46,10 +46,10 @@ EXCLUDES=(
   # 编辑器/构建残留备份文件
   --exclude='*.bak'
   # 闭源模块（商业层 + EE）
-  --exclude=tianshu-commercial
-  --exclude=tianshu-ee-core
-  --exclude=tianshu-ee-sso
-  --exclude=tianshu-ee-audit
+  --exclude=axiflux-commercial
+  --exclude=axiflux-ee-core
+  --exclude=axiflux-ee-sso
+  --exclude=axiflux-ee-audit
   # 官网营销页（README 已含商业合作入口，不需要独立官网）
   --exclude=docs/site
   # 内部销售 / BP / 价格 / POC / 法律内部清单
@@ -87,7 +87,7 @@ rsync -a --delete "${EXCLUDES[@]}" "$SRC"/ "$OUT"/
 echo
 echo "export complete. verify before publishing:"
 echo "  cd \"$OUT\" && find . -maxdepth 1 -type d | sort"
-echo "  grep -RIn 'tianshu-commercial\\|StripeClient' . || echo 'no commercial refs'"
+echo "  grep -RIn 'axiflux-commercial\\|StripeClient' . || echo 'no commercial refs'"
 echo
 echo "next (you run explicitly):"
-echo "  cd \"$OUT\" && git init && git add . && git commit -m 'open-source Tianshu framework'"
+echo "  cd \"$OUT\" && git init && git add . && git commit -m 'open-source Axiflux framework'"

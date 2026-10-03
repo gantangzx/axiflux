@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 多租户隔离启动校验 实机脚本 (M2-4)
+# AxiFlux 多租户隔离启动校验 实机脚本 (M2-4)
 #
 # 验证三种启动组合（同一隔离 PG/Redis）：
 #   A. deployment.mode=saas  + workspaces-enabled 未开 -> 启动必须 FAIL（fail-fast）
@@ -8,7 +8,7 @@
 #   C. deployment.mode=standalone（默认）+ 不开 workspaces -> 启动成功（私有化不受影响）
 #
 # 用法:
-#   ./tenant-isolation-guard-selftest.sh --jar /abs/tianshu-app-*.jar [选项]
+#   ./tenant-isolation-guard-selftest.sh --jar /abs/axiflux-app-*.jar [选项]
 # 选项: --work DIR --port N --pg-port N --redis-port N --keep
 # =============================================================================
 set -euo pipefail
@@ -28,7 +28,7 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$JAR" ] && [ -f "$JAR" ] || { echo "必须提供存在的 --jar" >&2; exit 2; }
 JAR=$(cd "$(dirname "$JAR")" && pwd)/$(basename "$JAR")
-WORK="${WORK:-/tmp/tianshu-ten-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
+WORK="${WORK:-/tmp/axiflux-ten-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')}"
 PGDIR="$WORK/pg"; REDISDIR="$WORK/redis"; LOGDIR="$WORK/logs"; WSDIR="$WORK/workspaces"
 PG_PID=""; REDIS_PID=""; APP_PID=""
 mkdir -p "$PGDIR" "$REDISDIR" "$LOGDIR"
@@ -72,8 +72,8 @@ export LD_LIBRARY_PATH="$(dirname "$(dirname "$PG_BIN")")/lib:${LD_LIBRARY_PATH:
 "$INITDB" -D "$PGDIR" -U postgres --encoding=UTF8 --locale=C -A trust >"$LOGDIR/initdb.log" 2>&1
 "$PG_CTL" -D "$PGDIR" -o "-p $PG_PORT -k $PGDIR -h 127.0.0.1" -w -l "$LOGDIR/pg.log" start
 PG_PID=$(head -1 "$PGDIR/postmaster.pid")
-"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d postgres -c "CREATE DATABASE tianshu ENCODING 'UTF8'" >/dev/null
-"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d tianshu -c "CREATE EXTENSION vector" >/dev/null
+"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d postgres -c "CREATE DATABASE Axiflux ENCODING 'UTF8'" >/dev/null
+"$PSQL" -h 127.0.0.1 -p "$PG_PORT" -U postgres -d Axiflux -c "CREATE EXTENSION vector" >/dev/null
 
 REDIS_PASS=$(head -c 18 /dev/urandom | base64 | tr -d '/+=' | head -c 18)
 "$REDIS_BIN" --port "$REDIS_PORT" --bind 127.0.0.1 --daemonize yes \
@@ -89,7 +89,7 @@ write_env() {
   cat > "$WORK/run.env" <<EOF
 SPRING_PROFILES_ACTIVE=prod
 SERVER_PORT=$PORT
-PG_URL=jdbc:postgresql://127.0.0.1:$PG_PORT/tianshu
+PG_URL=jdbc:postgresql://127.0.0.1:$PG_PORT/Axiflux
 PG_USER=postgres
 PG_PASSWORD=
 REDIS_HOST=127.0.0.1
@@ -99,10 +99,10 @@ AUTH_ENABLED=true
 AUTH_SECRET=$AUTH_SECRET
 SESSION_PROVIDER=jpa
 VECTOR_PROVIDER=pgvector
-TIANSHU_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASS
-TIANSHU_DEPLOYMENT_MODE=$1
-TIANSHU_TOOLS_WORKSPACESENABLED=$2
-TIANSHU_TOOLS_WORKSPACESROOT=$WSDIR
+AXIFLUX_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASS
+AXIFLUX_DEPLOYMENT_MODE=$1
+AXIFLUX_TOOLS_WORKSPACESENABLED=$2
+AXIFLUX_TOOLS_WORKSPACESROOT=$WSDIR
 EOF
   chmod 600 "$WORK/run.env"
 }
@@ -113,7 +113,7 @@ attempt_start() {
   local out; out="$LOGDIR/app.$1.log"
   # Start java directly (no wrapping subshell) so $! is the real JVM pid and
   # stop_app/cleanup can reap it. cd first so logback's file appender writes
-  # logs/tianshu.log inside the sandbox rather than the repo root.
+  # logs/axiflux.log inside the sandbox rather than the repo root.
   cd "$WORK"
   java -jar "$JAR" > "$out" 2>&1 &
   APP_PID=$!
@@ -143,11 +143,11 @@ log "场景A saas 不开隔离 -> 必须 fail-fast"
 write_env saas false
 RA=$(attempt_start A)
 rec EXITED "$RA" "SaaS 无隔离时启动应被拒绝（进程退出）"
-# The guard message goes through logback's FILE appender ($WORK/logs/tianshu.log);
+# The guard message goes through logback's FILE appender ($WORK/logs/axiflux.log);
 # stdout ($LOGDIR/app.A.log) only carries the boot banner.
-if grep -q "saas requires per-user workspace isolation" "$LOGDIR/tianshu.log"; then
+if grep -q "saas requires per-user workspace isolation" "$LOGDIR/axiflux.log"; then
   rec MSG MSG "日志包含明确的 fail-fast 修复指引"
-else rec MSG "$(grep -i exception "$LOGDIR/tianshu.log" | head -1)" "应包含隔离缺失说明"; fi
+else rec MSG "$(grep -i exception "$LOGDIR/axiflux.log" | head -1)" "应包含隔离缺失说明"; fi
 
 # ---- B: saas + workspaces -> UP ----
 log "场景B saas 开启隔离 -> 启动成功"
@@ -156,7 +156,7 @@ RB=$(attempt_start B)
 rec UP "$RB" "SaaS 开启隔离后启动成功"
 if [ "$RB" = "UP" ]; then
   TOKEN=$(curl -s --max-time 8 -H 'Content-Type: application/json' -X POST \
-    -d "{\"login\":\"tianshu\",\"password\":\"$ADMIN_PASS\"}" \
+    -d "{\"login\":\"Axiflux\",\"password\":\"$ADMIN_PASS\"}" \
     "http://127.0.0.1:$PORT/api/v1/auth/login" \
     | python3 -c "import json,sys;print(json.load(sys.stdin)['data']['token'])")
   HC=$(curl -s --max-time 5 -H "Authorization: Bearer $TOKEN" \

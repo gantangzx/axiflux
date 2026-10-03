@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 备份 (Linux) —— 数据库 + 数据卷 + 配置与授权文件，带校验清单
+# AxiFlux 备份 (Linux) —— 数据库 + 数据卷 + 配置与授权文件，带校验清单
 #
 # 用法:
-#   sudo ./backup.sh --install-dir /opt/tianshu [--out /backup/tianshu] \
+#   sudo ./backup.sh --install-dir /opt/Axiflux [--out /backup/Axiflux] \
 #                    [--keep 14] [--encrypt-recipient key.gpg] [--no-db]
 #
-# 产物: <out>/tianshu-backup-YYYYmmdd-HHMMSS.tar.gz
-#       内部: db/tianshu.dump (pg_dump -Fc) / data/（workspace, skills, license, registry-blobs）
-#             conf/（tianshu.env 脱敏副本） / MANIFEST.txt / SHA256SUMS
+# 产物: <out>/axiflux-backup-YYYYmmdd-HHMMSS.tar.gz
+#       内部: db/axiflux.dump (pg_dump -Fc) / data/（workspace, skills, license, registry-blobs）
+#             conf/（axiflux.env 脱敏副本） / MANIFEST.txt / SHA256SUMS
 # 恢复: ./restore.sh --file <备份包>
 # =============================================================================
 set -euo pipefail
 
-INSTALL_DIR=/opt/tianshu
-OUT=/backup/tianshu
+INSTALL_DIR=/opt/Axiflux
+OUT=/backup/Axiflux
 KEEP=14
 RECIPIENT=""
 WITH_DB=1
@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-ENVFILE="$INSTALL_DIR/conf/tianshu.env"
+ENVFILE="$INSTALL_DIR/conf/axiflux.env"
 [ -f "$ENVFILE" ] || die "找不到 $ENVFILE"
 # shellcheck disable=SC1090
 . "$ENVFILE"
@@ -55,13 +55,13 @@ if [ "$WITH_DB" = "1" ]; then
   log "导出数据库 $PG_DB@$PG_HOST:$PG_PORT"
   if command -v pg_dump >/dev/null 2>&1; then
     PGPASSWORD="$PG_PASSWORD" pg_dump -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
-      -Fc --no-owner --no-privileges -f "$STAGE/db/tianshu.dump" || die "pg_dump 失败"
-    log "  数据库大小: $(du -h "$STAGE/db/tianshu.dump" | cut -f1)"
+      -Fc --no-owner --no-privileges -f "$STAGE/db/axiflux.dump" || die "pg_dump 失败"
+    log "  数据库大小: $(du -h "$STAGE/db/axiflux.dump" | cut -f1)"
   elif command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qi postgres; then
     C=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
-    docker exec "$C" pg_dump -U "$PG_USER" -d "$PG_DB" -Fc --no-owner --no-privileges > "$STAGE/db/tianshu.dump" \
+    docker exec "$C" pg_dump -U "$PG_USER" -d "$PG_DB" -Fc --no-owner --no-privileges > "$STAGE/db/axiflux.dump" \
       || die "容器内 pg_dump 失败"
-    log "  （容器 $C）数据库大小: $(du -h "$STAGE/db/tianshu.dump" | cut -f1)"
+    log "  （容器 $C）数据库大小: $(du -h "$STAGE/db/axiflux.dump" | cut -f1)"
   else
     die "既无 pg_dump 也无 postgres 容器可用"
   fi
@@ -76,13 +76,13 @@ for d in registry-blobs registry-blobs2 registry-keys registry-keys2; do
 done
 
 log "归档配置（脱敏）"
-sed -E 's/^(.*(PASSWORD|SECRET|API_KEY|TOKEN)=).*/\1***REDACTED***/' "$ENVFILE" > "$STAGE/conf/tianshu.env.redacted"
+sed -E 's/^(.*(PASSWORD|SECRET|API_KEY|TOKEN)=).*/\1***REDACTED***/' "$ENVFILE" > "$STAGE/conf/axiflux.env.redacted"
 for f in "$INSTALL_DIR/lib/LICENSE-EE.md" "$INSTALL_DIR/conf/initial-admin-password.txt"; do
   [ -f "$f" ] && cp -f "$f" "$STAGE/conf/" 2>/dev/null || true
 done
 [ -f "$INSTALL_DIR/data/license/license.lic" ] && cp -f "$INSTALL_DIR/data/license/license.lic" "$STAGE/conf/license.lic"
 
-JARV=$(ls -1 "$INSTALL_DIR/lib"/tianshu-app*.jar 2>/dev/null | head -1)
+JARV=$(ls -1 "$INSTALL_DIR/lib"/axiflux-app*.jar 2>/dev/null | head -1)
 DBV=$(command -v psql >/dev/null 2>&1 && PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" -tAc \
   "select coalesce(max(version),'unknown') from flyway_schema_history where success" 2>/dev/null | tr -d ' \r' || echo unknown)
 
@@ -104,7 +104,7 @@ cp -f "$INSTALL_DIR/LICENSE" "$STAGE/" 2>/dev/null || true
 log "生成校验清单"
 ( cd "$STAGE" && find . -type f ! -name SHA256SUMS -print0 | xargs -0 sha256sum > SHA256SUMS )
 
-ARCHIVE="$OUT/tianshu-backup-$STAMP.tar.gz"
+ARCHIVE="$OUT/axiflux-backup-$STAMP.tar.gz"
 tar -czf "$ARCHIVE" -C "$STAGE" .
 if [ -n "$RECIPIENT" ]; then
   command -v gpg >/dev/null 2>&1 || die "未安装 gpg，无法加密"
@@ -114,9 +114,9 @@ sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
 rm -rf "$STAGE"
 
 # 保留策略
-COUNT=$(ls -1 "$OUT"/tianshu-backup-*.tar.gz* 2>/dev/null | grep -v '\.sha256$' | wc -l | tr -d ' ')
+COUNT=$(ls -1 "$OUT"/axiflux-backup-*.tar.gz* 2>/dev/null | grep -v '\.sha256$' | wc -l | tr -d ' ')
 if [ "$COUNT" -gt "$KEEP" ]; then
-  ls -1t "$OUT"/tianshu-backup-*.tar.gz* | grep -v '\.sha256$' | tail -n +$((KEEP+1)) | while read -r old; do
+  ls -1t "$OUT"/axiflux-backup-*.tar.gz* | grep -v '\.sha256$' | tail -n +$((KEEP+1)) | while read -r old; do
     log "清理旧备份 $(basename "$old")"; rm -f "$old" "$old.sha256"
   done
 fi

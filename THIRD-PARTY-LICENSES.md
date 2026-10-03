@@ -1,10 +1,10 @@
 # 第三方依赖与许可清单（THIRD-PARTY LICENSES）
-> 产品：天枢 Agent 平台（Tianshu Agent Platform） 版本：0.1.0-SNAPSHOT  
+> 产品：AxiFlux Agent 平台（Axiflux Platform） 版本：0.1.0-SNAPSHOT  
 > 生成时间：2026-09-24 ｜ 生成方式：`scripts/ops/gen-third-party-licenses.py` 直读发布 jar 的 `BOOT-INF/lib`  
 > 本清单与 jar 内容一一对应（共 190 个第三方 jar，187 个不同组件）。
 
 ## 0. 声明
-- 本产品自身代码以 **Apache-2.0** 许可（社区版）与 **Tianshu Enterprise License 1.0**（企业版模块，见 `LICENSE-EE.md`）分发。
+- 本产品自身代码以 **Apache-2.0** 许可（社区版）与 **Axiflux Enterprise License 1.0**（企业版模块，见 `LICENSE-EE.md`）分发。
 - 本产品**以二进制依赖形式**（未修改源码）使用以下第三方组件；各组件的版权归其各自作者所有，许可全文见各上游项目。
 - 交付时随附 `LICENSE`（Apache-2.0 正文）、`NOTICE`（版权与归属声明）与本清单。
 - 表内许可为**依据上游公开发布信息整理**，最终以各组件仓库/发行包内的 LICENSE 文件为准；带 ⚠ 的 copyleft 组件建议由法务在商务合同前确认义务履行方式。
@@ -224,7 +224,7 @@
 | 186 | txw2 | 4.0.9 | EPL-2.0 / GPL-2.0(dual)（按组件族推定） |
 | 187 | webjars-locator-lite | 1.1.4 | Apache-2.0（按组件族推定） |
 
-> 本产品自有模块（`tianshu-core`, `tianshu-spring`, `tianshu-storage`）不计入第三方清单；其版权归 gantang 所有，许可见 `LICENSE` / `LICENSE-EE.md`。
+> 本产品自有模块（`reaxon-core`, `axiflux-spring`, `axiflux-storage`）不计入第三方清单；其版权归 gantang 所有，许可见 `LICENSE` / `LICENSE-EE.md`。
 
 ## 4. 维护要求
 - 每次发布（含依赖升级）后重新执行本脚本，确保清单与产物一致。

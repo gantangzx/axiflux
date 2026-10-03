@@ -1,14 +1,14 @@
-# Tianshu Skill Registry（技能注册中心）运行手册
+# Axiflux Skill Registry（技能注册中心）运行手册
 
 > 创建：2026-09-23
-> 适用：`tianshu-registry` 独立服务的构建、配置、部署与运维。
+> 适用：`axiflux-registry` 独立服务的构建、配置、部署与运维。
 > 主应用手册见 [environments.md](environments.md)。
 
 ---
 
 ## 1. 它是什么
 
-`tianshu-registry` 是一个**独立可部署的技能注册中心**，与 `tianshu-app`（主应用，8080）
+`axiflux-registry` 是一个**独立可部署的技能注册中心**，与 `axiflux-app`（主应用，8080）
 完全解耦，默认监听 **8090**。它提供技能 zip 的：
 
 - 发布（publish，需 Bearer 令牌）
@@ -20,8 +20,8 @@
 主应用把它当作"技能市场"的后端；**注册中心停服不影响主应用的本地技能与已装技能**。
 
 ```
-  发布者 ──Bearer token──▶ Registry (8090) ──公开只读/下载──▶ 主应用 tianshu-app (8080)
-                              │  PostgreSQL(tianshu_registry)
+  发布者 ──Bearer token──▶ Registry (8090) ──公开只读/下载──▶ 主应用 axiflux-app (8080)
+                              │  PostgreSQL(AXIFLUX_registry)
                               └  blob 目录 + Ed25519 密钥
 ```
 
@@ -30,12 +30,12 @@
 ## 2. 模块与文件结构
 
 ```
-tianshu-registry/
+axiflux-registry/
   pom.xml
   src/main/
-    java/com/gantang/tianshu/registry/
+    java/com/gantang/axiflux/registry/
       RegistryApplication.java          # 启动类
-      config/RegistryProperties.java     # tianshu.registry.* 配置 + 启动 fail-fast
+      config/RegistryProperties.java     # axiflux.registry.* 配置 + 启动 fail-fast
       config/RegistryFlywayConfiguration.java
       entity/SkillCatalog.java SkillVersion.java
       repo/SkillCatalogRepository.java SkillVersionRepository.java
@@ -67,7 +67,7 @@ env/
 | 变量 | 默认值 | 说明 |
 |---|---|---|
 | `REGISTRY_PORT` | `8090` | HTTP 端口 |
-| `REGISTRY_DB_URL` | `jdbc:postgresql://localhost:5432/tianshu_registry` | PostgreSQL JDBC URL |
+| `REGISTRY_DB_URL` | `jdbc:postgresql://localhost:5432/AXIFLUX_registry` | PostgreSQL JDBC URL |
 | `REGISTRY_DB_USER` | `postgres` | DB 用户 |
 | `REGISTRY_DB_PASSWORD` | *(空)* | DB 口令，**无内置默认**，生产必填 |
 | `REGISTRY_BLOB_DIR` | `./registry-blobs` | 内容寻址 zip 存储目录 |
@@ -112,7 +112,7 @@ openssl rand -hex 32
 注册中心需要独立的 PostgreSQL 库（可用任意 PG 16 实例；无需 pgvector）。建库：
 
 ```sql
-CREATE DATABASE tianshu_registry;
+CREATE DATABASE AXIFLUX_registry;
 ```
 
 首次启动时 Flyway 自动执行 V1/V2 建表（`baseline-on-migrate=true`）。
@@ -134,10 +134,10 @@ chmod 600 env/env.registry.sh
 ### 4.3 构建
 
 ```bash
-mvn clean install -DskipTests -pl tianshu-registry -am
+mvn clean install -DskipTests -pl axiflux-registry -am
 ```
 
-`-am` 会同时构建它依赖的上游模块；只改了注册中心代码时，单独 `-pl tianshu-registry` 也可。
+`-am` 会同时构建它依赖的上游模块；只改了注册中心代码时，单独 `-pl axiflux-registry` 也可。
 
 ### 4.4 启动
 
@@ -151,7 +151,7 @@ scripts/registry.sh           # 后台，日志 logs/registry.log
 scripts/registry.sh -f        # 前台
 ```
 
-IDE：直接运行 `com.gantang.tianshu.registry.RegistryApplication`，在运行配置里设置上述环境变量。
+IDE：直接运行 `com.gantang.axiflux.registry.RegistryApplication`，在运行配置里设置上述环境变量。
 
 ### 4.5 健康检查
 
@@ -223,7 +223,7 @@ curl -X PATCH http://localhost:8090/api/registry/skills/<slug>/status \
   -d '{"status":"deprecated"}'
 ```
 
-主应用侧：配置 `tianshu.skills.registry-url=http://localhost:8090` 后，控制台"技能市场"
+主应用侧：配置 `axiflux.skills.registry-url=http://localhost:8090` 后，控制台"技能市场"
 即可浏览安装；安装来源写作 `registry:<slug>[@version]`。
 
 ---
@@ -232,7 +232,7 @@ curl -X PATCH http://localhost:8090/api/registry/skills/<slug>/status \
 
 ### 7.1 要点
 
-- 用**独立**的生产 PostgreSQL（库 `tianshu_registry`），定期备份数据库；
+- 用**独立**的生产 PostgreSQL（库 `AXIFLUX_registry`），定期备份数据库；
 - `REGISTRY_PUBLISH_TOKEN` 用强随机值并通过 secret manager / 容器 env 注入，不落明文文件；
 - `REGISTRY_DB_PASSWORD` 必填且与其他环境不同；
 - 持久化并备份 `REGISTRY_BLOB_DIR`（丢 blob 会导致已发布版本 410 GONE）；
@@ -242,15 +242,15 @@ curl -X PATCH http://localhost:8090/api/registry/skills/<slug>/status \
 ### 7.2 容器运行示例
 
 ```bash
-docker run -d --name tianshu-registry \
-  -e REGISTRY_DB_URL='jdbc:postgresql://db:5432/tianshu_registry' \
-  -e REGISTRY_DB_USER='tianshu' \
+docker run -d --name axiflux-registry \
+  -e REGISTRY_DB_URL='jdbc:postgresql://db:5432/AXIFLUX_registry' \
+  -e REGISTRY_DB_USER='Axiflux' \
   -e REGISTRY_DB_PASSWORD='<strong-db-password>' \
   -e REGISTRY_PUBLISH_TOKEN='<strong-random-token>' \
   -e REGISTRY_BLOB_DIR='/data/blobs' \
   -e REGISTRY_SIGNING_KEY_FILE='/data/keys/ed25519.key' \
   -v registry-data:/data \
-  -p 8090:8090 tianshu-registry:latest
+  -p 8090:8090 axiflux-registry:latest
 ```
 
 > 现状：注册中心目前以同仓模块 + 本机/单机运行为主，当前 blob 仅支持本地文件系统；
@@ -280,5 +280,5 @@ docker run -d --name tianshu-registry \
 默认值改为环境变量。建议：
 
 1. 更换该 PostgreSQL 口令；
-2. 用 `git log -p -- tianshu-registry/src/main/resources/application.yml` 复查历史；
+2. 用 `git log -p -- axiflux-registry/src/main/resources/application.yml` 复查历史；
 3. 生产上线前确认没有任何环境仍在使用旧口令。

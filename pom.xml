@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.gantang.tianshu</groupId>
-    <artifactId>tianshu-agent</artifactId>
+    <groupId>com.gantang.axiflux</groupId>
+    <artifactId>axiflux-agent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Tianshu Agent</name>
-    <description>Tianshu Agent Runtime Framework in Java</description>
+    <name>Axiflux</name>
+    <description>Axiflux Runtime Framework in Java</description>
 
     <!--
       Default reactor = open-source only. This keeps "the framework builds and
@@ -21,22 +21,22 @@
       so closed-source artifacts never participate in the default build.
     -->
     <modules>
-        <module>tianshu-core</module>
-        <module>tianshu-eval</module>
-        <module>tianshu-storage</module>
-        <module>tianshu-spring</module>
-        <module>tianshu-registry</module>
-        <module>tianshu-app</module>
+        <module>reaxon-core</module>
+        <module>reaxon-eval</module>
+        <module>axiflux-storage</module>
+        <module>axiflux-spring</module>
+        <module>axiflux-registry</module>
+        <module>axiflux-app</module>
     </modules>
 
     <profiles>
         <profile>
             <id>ee</id>
             <modules>
-                <module>tianshu-ee-core</module>
-                <module>tianshu-ee-sso</module>
-                <module>tianshu-ee-audit</module>
-                <module>tianshu-commercial</module>
+                <module>axiflux-ee-core</module>
+                <module>axiflux-ee-sso</module>
+                <module>axiflux-ee-audit</module>
+                <module>axiflux-commercial</module>
             </modules>
         </profile>
     </profiles>

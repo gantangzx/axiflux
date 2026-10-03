@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Tianshu unified launcher (Linux / macOS).
+# Axiflux unified launcher (Linux / macOS).
 #
 # Usage:
 #   scripts/start.sh [local|dev|test|prod] [-f]
@@ -49,7 +49,7 @@ if ! command -v "$JAVA_BIN" >/dev/null 2>&1; then
   exit 1
 fi
 
-APP_JAR="tianshu-app/target/tianshu-app-0.1.0-SNAPSHOT.jar"
+APP_JAR="axiflux-app/target/axiflux-app-0.1.0-SNAPSHOT.jar"
 if [[ ! -f "$APP_JAR" ]]; then
   echo "[ERROR] jar not found: $APP_JAR" >&2
   echo "Build first:  mvn clean install -DskipTests" >&2

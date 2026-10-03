@@ -1,16 +1,16 @@
-# 天枢 TIANSHU
+# AxiFlux Axiflux
 
 **响应式 AI Agent 框架 Java 实现** — 模块化、可扩展、安全优先。
 
-> 天枢：北斗第一星，众星之枢 —— 智能体编排中枢。
-> 项目代号 / Maven artifactId：`tianshu-agent` / `tianshu-*`
+> AxiFlux：北斗第一星，众星之枢 —— 智能体编排中枢。
+> 项目代号 / Maven artifactId：`axiflux-agent` / `axiflux-*`
 
 [![Java 25](https://img.shields.io/badge/Java-25-blue.svg)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot 4.1](https://img.shields.io/badge/Spring%20Boot-4.1-green.svg)](https://spring.io/projects/spring-boot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Discussions](https://img.shields.io/badge/chat-Discussions-5865F2.svg)](https://github.com/gantangzx/tianshu-agent/discussions)
+[![GitHub Discussions](https://img.shields.io/badge/chat-Discussions-5865F2.svg)](https://github.com/gantangzx/axiflux-agent/discussions)
 
-**使用问题**：请到 [GitHub Discussions](https://github.com/gantangzx/tianshu-agent/discussions) 发起讨论；缺陷请提 [Issues](https://github.com/gantangzx/tianshu-agent/issues)。
+**使用问题**：请到 [GitHub Discussions](https://github.com/gantangzx/axiflux-agent/discussions) 发起讨论；缺陷请提 [Issues](https://github.com/gantangzx/axiflux-agent/issues)。
 
 ---
 
@@ -31,16 +31,16 @@
 ## 📦 模块结构
 
 ```
-tianshu-agent/
-├── tianshu-core/      # 核心引擎（零 Spring 依赖，契约 api + 默认实现 impl）
-├── tianshu-storage/   # JPA 实体 + Repository + Flyway 迁移（PostgreSQL/Redis）
-├── tianshu-registry/  # 工具注册中心（独立服务）
-├── tianshu-spring/    # Spring Boot 装配：安全、控制器、Provider、计费
-├── tianshu-app/       # 可启动单体（启动类 + 托管前端 dist）
-└── tianshu-eval/      # 评测（yaml 用例集）
+axiflux-agent/
+├── reaxon-core/      # 核心引擎（零 Spring 依赖，契约 api + 默认实现 impl）
+├── axiflux-storage/   # JPA 实体 + Repository + Flyway 迁移（PostgreSQL/Redis）
+├── axiflux-registry/  # 工具注册中心（独立服务）
+├── axiflux-spring/    # Spring Boot 装配：安全、控制器、Provider、计费
+├── axiflux-app/       # 可启动单体（启动类 + 托管前端 dist）
+└── reaxon-eval/      # 评测（yaml 用例集）
 ```
 
-**分层纪律**：依赖单向向下，`tianshu-core` 不依赖 Spring/Web，可被非 Spring 宿主复用。
+**分层纪律**：依赖单向向下，`reaxon-core` 不依赖 Spring/Web，可被非 Spring 宿主复用。
 实测后端主代码 356 个 Java 文件（core 184 / spring 128 / storage 31 / registry 13）。
 
 ---
@@ -51,8 +51,8 @@ tianshu-agent/
 
 ```xml
 <dependency>
-    <groupId>com.gantang.tianshu</groupId>
-    <artifactId>tianshu-spring</artifactId>
+    <groupId>com.gantang.axiflux</groupId>
+    <artifactId>axiflux-spring</artifactId>
     <version>0.1.0</version>
 </dependency>
 ```
@@ -60,7 +60,7 @@ tianshu-agent/
 ### 2. 配置 application.yml
 
 ```yaml
-tianshu:
+axiflux:
   # LLM 配置
   llm:
     routing:
@@ -83,7 +83,7 @@ tianshu:
 
   # 数据库
   storage:
-    pg-url: jdbc:postgresql://localhost:5432/tianshu
+    pg-url: jdbc:postgresql://localhost:5432/Axiflux
     pg-user: postgres
     pg-password: ${DB_PASSWORD}
 
@@ -104,7 +104,7 @@ tianshu:
 
 ```java
 @SpringBootApplication
-@EnableConfigurationProperties(TianshuProperties.class)
+@EnableConfigurationProperties(AxifluxProperties.class)
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -175,7 +175,7 @@ NetworkEgressPolicy（SSRF 防护：EgressGuard 逐跳 + DNS-rebinding）
 
 **推荐配置**：
 ```yaml
-tianshu:
+axiflux:
   vector:
     provider: pgvector
     dimension: 1536
@@ -255,7 +255,7 @@ public Tool myCustomTool() {
 ### WebSocket
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/tianshu/ws', 'tianshu');
+const ws = new WebSocket('ws://localhost:8080/Axiflux/ws', 'Axiflux');
 ws.send(JSON.stringify({
     type: 'chat',
     sessionId: 'session-123',
@@ -336,8 +336,8 @@ SkillResult result = executor.execute("my-workflow", AgentContext.of("计算增�
 ./mvnw test
 
 # 运行单个模块测试
-./mvnw test -pl tianshu-core
-./mvnw test -pl tianshu-spring
+./mvnw test -pl reaxon-core
+./mvnw test -pl axiflux-spring
 
 # 覆盖率报告
 ./mvnw jacoco:report
@@ -352,7 +352,7 @@ SkillResult result = executor.execute("my-workflow", AgentContext.of("计算增�
 > 该参数语义相反（只编译变更文件），会让本该失败的构建报 SUCCESS。需要可信结果时用
 > `./mvnw clean test`，或删除各模块 `target/classes` 与 `target/maven-status` 后重新构建。
 > 同理，`-pl <module>` 会从本地仓库解析上游模块的**旧 jar**，改动了 core/storage 时
-> 必须先 `./mvnw install -pl tianshu-core,tianshu-storage -DskipTests`。
+> 必须先 `./mvnw install -pl reaxon-core,axiflux-storage -DskipTests`。
 
 ---
 

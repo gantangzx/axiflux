@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-天枢 发布包完整性校验 (check-package.py)
+AxiFlux 发布包完整性校验 (check-package.py)
 
 用途：在打包后、交付前，验证 fat jar / 离线分发包是否"可交付"。
       防止出现「jar 里没有前端静态资源」「缺少 Flyway 迁移」「薄 jar（无 BOOT-INF/lib）」等
@@ -9,8 +9,8 @@
       repackage 未执行，导致服务能起但控制台 / 返回 5xx 或超时）。
 
 用法:
-  python3 check-package.py <path-to-tianshu-app.jar>
-  python3 check-package.py <path-to-tianshu-offline.tar.gz|zip>   # 也支持离线分发包
+  python3 check-package.py <path-to-axiflux-app.jar>
+  python3 check-package.py <path-to-axiflux-offline.tar.gz|zip>   # 也支持离线分发包
   python3 check-package.py --dist-dir <解包目录>
 
 退出码: 0=通过  1=有 FAIL  2=用法错误
@@ -28,13 +28,13 @@ OK = []
 EXPECT_EE = None
 
 REQUIRED_JAR_PREFIXES = [
-    ("app-classes", "BOOT-INF/classes/com/gantang/tianshu/", 1),
+    ("app-classes", "BOOT-INF/classes/com/gantang/axiflux/", 1),
     ("spring-boot-libs", "BOOT-INF/lib/", 60),
     ("static-index", "BOOT-INF/classes/static/index.html", 1),
     ("static-assets", "BOOT-INF/classes/static/assets/", 1),
 ]
 
-REQUIRED_ASSETS = ["tianshu.svg", "application.yml", "application-prod.yml", "application-local.yml"]
+REQUIRED_ASSETS = ["axiflux.svg", "application.yml", "application-prod.yml", "application-local.yml"]
 
 
 def human(n):
@@ -47,7 +47,7 @@ def human(n):
 
 def check_jar(path):
     print("=" * 71)
-    print(" 天枢 发布包完整性校验")
+    print(" AxiFlux 发布包完整性校验")
     print(" 目标: %s" % path)
     print(" 大小: %s" % human(os.path.getsize(path)))
     print("=" * 71)
@@ -95,10 +95,10 @@ def check_jar(path):
         else:
             WARN.append("%s 未在包内找到" % a)
 
-    # Flyway 迁移：可位于 BOOT-INF/classes/db/migration，也常见于嵌套模块 jar（tianshu-storage）
+    # Flyway 迁移：可位于 BOOT-INF/classes/db/migration，也常见于嵌套模块 jar（axiflux-storage）
     migrations = [n for n in names if n.startswith("BOOT-INF/classes/db/migration/V") and n.endswith(".sql")]
     if not migrations:
-        nested = [n for n in names if n.startswith("BOOT-INF/lib/tianshu-") and n.endswith(".jar")]
+        nested = [n for n in names if n.startswith("BOOT-INF/lib/axiflux-") and n.endswith(".jar")]
         for n in nested:
             try:
                 with zipfile.ZipFile(io.BytesIO(zf.read(n))) as nz:
@@ -135,7 +135,7 @@ def check_jar(path):
             pass
 
     # EE 分发判定
-    ee = [n for n in names if "tianshu-ee-" in n or n.startswith("BOOT-INF/lib/tianshu-ee-")]
+    ee = [n for n in names if "axiflux-ee-" in n or n.startswith("BOOT-INF/lib/axiflux-ee-")]
     if ee and EXPECT_EE is False:
         # 闭源企业版代码不得出现在社区包中；增量构建会让 jar 插件跳过重建、
         # repackage 复用旧 jar 的嵌套依赖，从而把 EE 依赖带进社区包（本项目已真实踩过）。
@@ -144,9 +144,9 @@ def check_jar(path):
     elif ee:
         OK.append("含企业版模块 %d 个（EE 分发）" % len(ee))
     elif EXPECT_EE is True:
-        FAIL.append("要求企业版分发，但未包含 tianshu-ee-*.jar（请用 -Pee 构建）")
+        FAIL.append("要求企业版分发，但未包含 axiflux-ee-*.jar（请用 -Pee 构建）")
     else:
-        WARN.append("未包含 tianshu-ee-*.jar → 社区版分发（企业版交付请用 -Pee 构建）")
+        WARN.append("未包含 axiflux-ee-*.jar → 社区版分发（企业版交付请用 -Pee 构建）")
 
     zf.close()
     return report()
@@ -154,7 +154,7 @@ def check_jar(path):
 
 def check_dist(path):
     print("=" * 71)
-    print(" 天枢 离线分发包校验")
+    print(" AxiFlux 离线分发包校验")
     print(" 目标: %s (%s)" % (path, human(os.path.getsize(path))))
     print("=" * 71)
 
@@ -177,7 +177,7 @@ def check_dist(path):
     has = lambda sub: any(sub in n for n in names)  # noqa: E731
 
     for must, desc in [
-        ("tianshu-app-", "应用 jar"),
+        ("axiflux-app-", "应用 jar"),
         ("SHA256SUMS", "SHA256 校验清单"),
         ("LICENSE", "LICENSE"),
         ("NOTICE", "NOTICE"),
@@ -191,9 +191,9 @@ def check_dist(path):
     ]:
         (OK if has(must) else FAIL).append("%s: %s" % (desc, "已包含" if has(must) else "缺失 (%s)" % must))
 
-    if has("tianshu-ee-") and EXPECT_EE is False:
+    if has("axiflux-ee-") and EXPECT_EE is False:
         FAIL.append("企业版 jar: 社区版分发包不得包含 EE（清理后重打）")
-    elif has("tianshu-ee-"):
+    elif has("axiflux-ee-"):
         OK.append("企业版 jar: 已包含")
     elif EXPECT_EE is True:
         FAIL.append("企业版 jar: 要求 EE 分发但缺失")
@@ -213,7 +213,7 @@ def check_dist(path):
 
 def check_dist_dir(d):
     print("=" * 71)
-    print(" 天枢 离线分发包目录校验")
+    print(" AxiFlux 离线分发包目录校验")
     print(" 目标: %s" % d)
     print("=" * 71)
     print("   提示：目录模式仅做存在性检查，不做 jar 内部校验（请对 jar 单独执行本脚本）")
@@ -231,9 +231,9 @@ def check_dist_dir(d):
         ("docker-compose.prod.yml", "生产 compose"),
     ]:
         (OK if has(p) else FAIL).append("%s: %s" % (desc, "已包含" if has(p) else "缺失 (%s)" % p))
-    jars = [f for f in os.listdir(d) if f.startswith("tianshu-app-") and f.endswith(".jar")]
+    jars = [f for f in os.listdir(d) if f.startswith("axiflux-app-") and f.endswith(".jar")]
     (OK if jars else FAIL).append("应用 jar: %s" % (", ".join(jars) if jars else "缺失"))
-    ee = [f for f in os.listdir(d) if f.startswith("tianshu-ee-") and f.endswith(".jar")]
+    ee = [f for f in os.listdir(d) if f.startswith("axiflux-ee-") and f.endswith(".jar")]
     if ee and EXPECT_EE is False:
         FAIL.append("企业版 jar: 社区版分发目录不得包含 EE（%s）" % ", ".join(ee))
     elif ee:

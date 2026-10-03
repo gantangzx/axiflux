@@ -1,7 +1,7 @@
-# 天枢 备份、恢复与灾备预案
+# AxiFlux 备份、恢复与灾备预案
 
 > 目标：RPO ≤ 24 h（每日备份）/ ≤ 5 min（开启 WAL 归档）；RTO ≤ 30 min（单机恢复）。
-> 工具：`scripts/ops/backup.sh`、`scripts/ops/restore.sh`（Windows 对应 `tianshu-ops.ps1 -Action Backup/Restore`）。
+> 工具：`scripts/ops/backup.sh`、`scripts/ops/restore.sh`（Windows 对应 `axiflux-ops.ps1 -Action Backup/Restore`）。
 
 ---
 
@@ -14,18 +14,18 @@
 | `data/skills` | 私有技能 | 私有技能需重装 |
 | `data/license/license.lic` | 授权文件 | 授权需重新签发 |
 | `registry-blobs` / `registry-keys*` | 技能市场联邦的包与密钥 | 联邦同步需重建 |
-| `conf/tianshu.env` | 配置与密钥（**备份件内脱敏**，原件另存保险柜） | 需重新配置 |
+| `conf/axiflux.env` | 配置与密钥（**备份件内脱敏**，原件另存保险柜） | 需重新配置 |
 
 ---
 
 ## 2. 手工备份
 
 ```bash
-sudo /opt/tianshu/scripts/ops/backup.sh --install-dir /opt/tianshu \
-     --out /backup/tianshu --keep 14 --encrypt-recipient ops@customer.cn
+sudo /opt/Axiflux/scripts/ops/backup.sh --install-dir /opt/Axiflux \
+     --out /backup/Axiflux --keep 14 --encrypt-recipient ops@customer.cn
 ```
 
-产物：`/backup/tianshu/tianshu-backup-20260924-120000.tar.gz`（含 `db/tianshu.dump`、`MANIFEST.txt`、`SHA256SUMS`）+ `.sha256`。
+产物：`/backup/Axiflux/axiflux-backup-20260924-120000.tar.gz`（含 `db/axiflux.dump`、`MANIFEST.txt`、`SHA256SUMS`）+ `.sha256`。
 
 - `--encrypt-recipient`：用 GPG 公钥加密（合规要求「备份介质加密」时必选）。
 - `--keep 14`：保留最近 14 份并自动清理更早的。
@@ -35,12 +35,12 @@ sudo /opt/tianshu/scripts/ops/backup.sh --install-dir /opt/tianshu \
 
 ```cron
 # 每日 02:30 全量备份，保留 14 天，加密到运维公钥
-30 2 * * * /opt/tianshu/scripts/ops/backup.sh --install-dir /opt/tianshu \
-           --out /backup/tianshu --keep 14 --encrypt-recipient ops@customer.cn \
-           >> /var/log/tianshu-backup.log 2>&1
+30 2 * * * /opt/Axiflux/scripts/ops/backup.sh --install-dir /opt/Axiflux \
+           --out /backup/Axiflux --keep 14 --encrypt-recipient ops@customer.cn \
+           >> /var/log/axiflux-backup.log 2>&1
 
 # 每周日 03:30 校验最近一份备份可解包 + 清单完整（防「备份不可用」）
-30 3 * * 0 /opt/tianshu/scripts/ops/restore.sh --file "$(ls -1t /backup/tianshu/*.tar.gz* | head -1)" --skip-db --yes >> /var/log/tianshu-backup-verify.log 2>&1
+30 3 * * 0 /opt/Axiflux/scripts/ops/restore.sh --file "$(ls -1t /backup/Axiflux/*.tar.gz* | head -1)" --skip-db --yes >> /var/log/axiflux-backup-verify.log 2>&1
 ```
 
 > `restore.sh --skip-db` 仅校验包结构与清单，不动数据库；用于「备份可用性」巡检。
@@ -49,11 +49,11 @@ sudo /opt/tianshu/scripts/ops/backup.sh --install-dir /opt/tianshu \
 
 ```bash
 # 1) 停服（restore 脚本会自行停服，亦可手动）
-sudo systemctl stop tianshu
+sudo systemctl stop Axiflux
 
 # 2) 恢复（脚本会：校验和 → 自动快照当前状态 → pg_restore --clean → 还原数据卷 → 启动 → 探活）
-sudo /opt/tianshu/scripts/ops/restore.sh --file /backup/tianshu/tianshu-backup-20260924-120000.tar.gz \
-     --install-dir /opt/tianshu --yes
+sudo /opt/Axiflux/scripts/ops/restore.sh --file /backup/Axiflux/axiflux-backup-20260924-120000.tar.gz \
+     --install-dir /opt/Axiflux --yes
 ```
 
 恢复后必须：
@@ -96,6 +96,6 @@ archive_command = 'test ! -f /backup/wal/%f && cp %p /backup/wal/%f'
 
 ## 7. 风险提示
 
-- **密钥备份**：`conf/tianshu.env` 内的 `AUTH_SECRET`、`PG_PASSWORD` 若丢失且无原件备份，恢复后需重配；建议纳入企业密码库（KMS/保险柜）。
+- **密钥备份**：`conf/axiflux.env` 内的 `AUTH_SECRET`、`PG_PASSWORD` 若丢失且无原件备份，恢复后需重配；建议纳入企业密码库（KMS/保险柜）。
 - **Redis 不备份**：Redis 内是瞬时共享态（审批/配额/锁），恢复后重新累积；但 AOF 必须开启以降低运行期丢失。
 - **向量数据**：向量表在 PG 内，随库备份；备份体积随记忆量增长，需评估磁盘与备份窗口。

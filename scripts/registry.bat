@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 rem ============================================================================
-rem Tianshu Skill Registry launcher (Windows).
+rem Axiflux Skill Registry launcher (Windows).
 rem
 rem Usage:
 rem   scripts\registry.bat [-f]
@@ -30,10 +30,10 @@ if exist "env\env.registry.bat" (
 )
 
 if not defined JAVA_HOME set "JAVA_HOME=D:\software\Java\jdk-25\jdk-25.0.2"
-set "APP_JAR=tianshu-registry\target\tianshu-registry-0.1.0-SNAPSHOT.jar"
+set "APP_JAR=axiflux-registry\target\axiflux-registry-0.1.0-SNAPSHOT.jar"
 if not exist "%APP_JAR%" (
   echo [ERROR] jar not found: %APP_JAR%
-  echo Build first:  mvn clean install -DskipTests -pl tianshu-registry -am
+  echo Build first:  mvn clean install -DskipTests -pl axiflux-registry -am
   popd
   exit /b 1
 )
@@ -46,7 +46,7 @@ if "%FOREGROUND%"=="1" (
   echo starting registry on port %REGISTRY_PORT% in foreground
   "%JAVA_HOME%\bin\java.exe" -jar "%APP_JAR%"
 ) else (
-  start "tianshu-registry" /min cmd /c ""%JAVA_HOME%\bin\java.exe" -jar "%APP_JAR%" > %LOG% 2>&1"
+  start "axiflux-registry" /min cmd /c ""%JAVA_HOME%\bin\java.exe" -jar "%APP_JAR%" > %LOG% 2>&1"
   echo launched registry on port %REGISTRY_PORT% detached; logs -^> %LOG%
 )
 

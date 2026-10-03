@@ -6,4 +6,4 @@
 *.md
 .dockerignore
 Dockerfile
-tianshu-examples/src/main/resources/application-local.yml
+axiflux-examples/src/main/resources/application-local.yml

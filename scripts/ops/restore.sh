@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 恢复 (Linux)
+# AxiFlux 恢复 (Linux)
 #
 # 用法:
-#   sudo ./restore.sh --file /backup/tianshu/tianshu-backup-20260924-120000.tar.gz \
-#                     --install-dir /opt/tianshu [--yes] [--skip-db]
+#   sudo ./restore.sh --file /backup/Axiflux/axiflux-backup-20260924-120000.tar.gz \
+#                     --install-dir /opt/Axiflux [--yes] [--skip-db]
 #
 # 行为: 校验和验证 -> 停止服务 -> 恢复数据库(pg_restore --clean) -> 还原数据卷/授权 -> 启动 -> 探活
 # 危险操作，默认要求 --yes 确认；恢复前会把当前状态做一次快照备份。
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 FILE=""
-INSTALL_DIR=/opt/tianshu
+INSTALL_DIR=/opt/Axiflux
 YES=0
 SKIP_DB=0
 
@@ -51,7 +51,7 @@ tar -xzf "$FILE" -C "$STAGE"
 ( cd "$STAGE" && sha256sum -c SHA256SUMS --quiet ) || log "警告：包内清单校验有差异（可能为旧包），继续"
 cat "$STAGE/MANIFEST.txt" || true
 
-ENVFILE="$INSTALL_DIR/conf/tianshu.env"
+ENVFILE="$INSTALL_DIR/conf/axiflux.env"
 [ -f "$ENVFILE" ] || die "找不到 $ENVFILE"
 # shellcheck disable=SC1090
 . "$ENVFILE"
@@ -62,18 +62,18 @@ log "恢复前快照（安全网）"
 [ -x "$INSTALL_DIR/scripts/ops/backup.sh" ] && "$INSTALL_DIR/scripts/ops/backup.sh" --install-dir "$INSTALL_DIR" --out "$INSTALL_DIR/backup" || true
 
 log "停止服务"
-systemctl stop tianshu.service || true
+systemctl stop axiflux.service || true
 
-if [ "$SKIP_DB" != "1" ] && [ -f "$STAGE/db/tianshu.dump" ]; then
+if [ "$SKIP_DB" != "1" ] && [ -f "$STAGE/db/axiflux.dump" ]; then
   log "恢复数据库（--clean --if-exists，保留其他库）"
   if command -v pg_restore >/dev/null 2>&1; then
     PGPASSWORD="$PG_PASSWORD" pg_restore -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
-      --clean --if-exists --no-owner --no-privileges -j 4 "$STAGE/db/tianshu.dump" \
+      --clean --if-exists --no-owner --no-privileges -j 4 "$STAGE/db/axiflux.dump" \
       || log "警告：pg_restore 返回非零（常见于对象已存在），请核对日志"
   elif command -v docker >/dev/null 2>&1; then
     C=$(docker ps -a --format '{{.Names}}' | grep -i postgres | head -1)
     docker exec -i "$C" pg_restore -U "$PG_USER" -d "$PG_DB" --clean --if-exists --no-owner --no-privileges \
-      < "$STAGE/db/tianshu.dump" || log "警告：pg_restore 返回非零"
+      < "$STAGE/db/axiflux.dump" || log "警告：pg_restore 返回非零"
   else
     die "既无 pg_restore 也无 postgres 容器"
   fi
@@ -89,10 +89,10 @@ for t in "$STAGE"/data-*.tar "$STAGE"/vol-*.tar; do
   log "  $(basename "$t")"
 done
 [ -f "$STAGE/conf/license.lic" ] && install -d "$INSTALL_DIR/data/license" && cp -f "$STAGE/conf/license.lic" "$INSTALL_DIR/data/license/license.lic"
-chown -R tianshu:tianshu "$INSTALL_DIR/data" 2>/dev/null || true
+chown -R axiflux:Axiflux "$INSTALL_DIR/data" 2>/dev/null || true
 
 log "启动服务"
-systemctl start tianshu.service
+systemctl start axiflux.service
 for i in $(seq 1 60); do
   C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:8080/actuator/health/liveness" || true)
   [ "$C" = "200" ] && break; sleep 3

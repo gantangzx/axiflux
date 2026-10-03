@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 离线一键安装 (Linux, x86_64/aarch64)
+# AxiFlux 离线一键安装 (Linux, x86_64/aarch64)
 #
 # 目标：陌生运维在无外网环境、30 分钟内完成安装并通过验收。
 #
 # 用法:
-#   sudo ./install.sh --package tianshu-offline-1.0.0.tar.gz [选项]
-#   sudo ./install.sh --dir /opt/tianshu-offline-1.0.0          # 已解包的目录
+#   sudo ./install.sh --package axiflux-offline-1.0.0.tar.gz [选项]
+#   sudo ./install.sh --dir /opt/axiflux-offline-1.0.0          # 已解包的目录
 #
 # 选项:
-#   --install-dir DIR    安装目录（默认 /opt/tianshu）
+#   --install-dir DIR    安装目录（默认 /opt/Axiflux）
 #   --port PORT          应用端口（默认 8080）
 #   --mode docker|native 基础设施模式（默认 docker：compose 起 PG+Redis；native：使用已就绪的 PG/Redis）
 #   --pg-host/--pg-port/--pg-user/--pg-password/--pg-db   native 模式数据库参数
 #   --redis-host/--redis-port/--redis-password            native 模式 Redis 参数
 #   --public-url URL     对外访问地址（默认 http://<本机IP>:<port>）
 #   --admin-password PWD 初始管理员口令（默认随机生成并打印一次）
-#   --ee                 安装企业版（分发包内含 tianshu-ee-*.jar 时）
+#   --ee                 安装企业版（分发包内含 axiflux-ee-*.jar 时）
 #   --skip-verify        安装后不跑验收脚本
 #   --dry-run            只打印动作，不落盘
 #
@@ -24,7 +24,7 @@
 # =============================================================================
 set -euo pipefail
 
-INSTALL_DIR=/opt/tianshu
+INSTALL_DIR=/opt/Axiflux
 PORT=8080
 MODE=docker
 PACKAGE=""
@@ -34,7 +34,7 @@ ADMIN_PASSWORD=""
 EE=0
 SKIP_VERIFY=0
 DRY=0
-PG_HOST=127.0.0.1; PG_PORT=5432; PG_USER=postgres; PG_PASSWORD=""; PG_DB=tianshu
+PG_HOST=127.0.0.1; PG_PORT=5432; PG_USER=postgres; PG_PASSWORD=""; PG_DB=Axiflux
 REDIS_HOST=127.0.0.1; REDIS_PORT=6379; REDIS_PASSWORD=""
 
 log()  { printf '\033[1;34m[install]\033[0m %s\n' "$*"; }
@@ -97,31 +97,31 @@ fi
 
 # ---------- 3. 用户与目录 ----------------------------------------------------
 log "3/9 创建用户与目录"
-if ! id tianshu >/dev/null 2>&1; then run useradd -r -m -d "$INSTALL_DIR" -s /usr/sbin/nologin tianshu; fi
+if ! id Axiflux >/dev/null 2>&1; then run useradd -r -m -d "$INSTALL_DIR" -s /usr/sbin/nologin Axiflux; fi
 for d in "$INSTALL_DIR" "$INSTALL_DIR/bin" "$INSTALL_DIR/lib" "$INSTALL_DIR/conf" "$INSTALL_DIR/data" \
          "$INSTALL_DIR/data/workspace" "$INSTALL_DIR/data/skills" "$INSTALL_DIR/data/license" "$INSTALL_DIR/logs" \
-         "$INSTALL_DIR/backup"; do run install -d -o tianshu -g tianshu "$d"; done
+         "$INSTALL_DIR/backup"; do run install -d -o Axiflux -g Axiflux "$d"; done
 
 # ---------- 4. 程序 ----------------------------------------------------------
 log "4/9 安装程序与迁移脚本"
-JAR=$(find "$SRC_DIR" -maxdepth 2 -name 'tianshu-app-*.jar' | head -1)
-[ -n "$JAR" ] || die "分发包内未找到 tianshu-app-*.jar"
+JAR=$(find "$SRC_DIR" -maxdepth 2 -name 'axiflux-app-*.jar' | head -1)
+[ -n "$JAR" ] || die "分发包内未找到 axiflux-app-*.jar"
 if [ "$EE" = "1" ]; then
-  EE_COUNT=$(find "$SRC_DIR" -maxdepth 2 -name 'tianshu-ee-*.jar' | wc -l | tr -d ' ')
-  [ "$EE_COUNT" = "0" ] && die "指定了 --ee 但包内没有 tianshu-ee-*.jar（EE 分发请勿混用社区包）"
+  EE_COUNT=$(find "$SRC_DIR" -maxdepth 2 -name 'axiflux-ee-*.jar' | wc -l | tr -d ' ')
+  [ "$EE_COUNT" = "0" ] && die "指定了 --ee 但包内没有 axiflux-ee-*.jar（EE 分发请勿混用社区包）"
   log "      企业版 jar 数量: $EE_COUNT"
 fi
-run cp -f "$JAR" "$INSTALL_DIR/lib/tianshu-app.jar"
+run cp -f "$JAR" "$INSTALL_DIR/lib/axiflux-app.jar"
 [ -d "$SRC_DIR/db/migration" ] && run cp -rf "$SRC_DIR/db/migration" "$INSTALL_DIR/lib/"
 [ -d "$SRC_DIR/runtime/jdk" ] && run cp -rf "$SRC_DIR/runtime" "$INSTALL_DIR/"
 run cp -f "$SRC_DIR/LICENSE" "$INSTALL_DIR/LICENSE" 2>/dev/null || true
 run cp -f "$SRC_DIR/NOTICE" "$INSTALL_DIR/NOTICE" 2>/dev/null || true
-for f in "$SRC_DIR"/LICENSE-EE.md "$SRC_DIR"/tianshu-ee-*.jar; do [ -e "$f" ] && run cp -f "$f" "$INSTALL_DIR/lib/" 2>/dev/null || true; done
+for f in "$SRC_DIR"/LICENSE-EE.md "$SRC_DIR"/axiflux-ee-*.jar; do [ -e "$f" ] && run cp -f "$f" "$INSTALL_DIR/lib/" 2>/dev/null || true; done
 [ -d "$SRC_DIR/scripts" ] && run cp -rf "$SRC_DIR/scripts" "$INSTALL_DIR/scripts"
-run chown -R tianshu:tianshu "$INSTALL_DIR"
+run chown -R axiflux:Axiflux "$INSTALL_DIR"
 
 # ---------- 5. 密钥与配置（只生成一次，幂等保留） -----------------------------
-ENVFILE="$INSTALL_DIR/conf/tianshu.env"
+ENVFILE="$INSTALL_DIR/conf/axiflux.env"
 log "5/9 生成配置与随机密钥"
 if [ -f "$ENVFILE" ]; then
   log "      已存在 $ENVFILE，保留既有配置（幂等）"
@@ -136,10 +136,10 @@ else
   [ -n "$PUBLIC_URL" ] || PUBLIC_URL="http://$(hostname -I 2>/dev/null | awk '{print $1}'):$PORT"
   if [ "$DRY" = "0" ]; then
     cat > "$ENVFILE" <<EOF
-# 天枢生产环境变量（安装时自动生成，请勿提交到版本库）
+# AxiFlux生产环境变量（安装时自动生成，请勿提交到版本库）
 SPRING_PROFILES_ACTIVE=prod
 SERVER_PORT=$PORT
-TIANSHU_PUBLIC_URL=$PUBLIC_URL
+AXIFLUX_PUBLIC_URL=$PUBLIC_URL
 PG_URL=jdbc:postgresql://$PG_HOST:$PG_PORT/$PG_DB
 PG_USER=$PG_USER
 PG_PASSWORD=$PG_PASSWORD
@@ -150,22 +150,22 @@ AUTH_ENABLED=true
 AUTH_SECRET=$AUTH_SECRET
 SESSION_PROVIDER=jpa
 VECTOR_PROVIDER=pgvector
-TIANSHU_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASSWORD
+AXIFLUX_AUTH_BOOTSTRAPADMIN_PASSWORD=$ADMIN_PASSWORD
 # 企业版开关（未购买 EE 时可全部置 false）
-TIANSHU_EE_ENABLED=$([ "$EE" = "1" ] && echo true || echo false)
-TIANSHU_EE_SAML_ENABLED=false
-TIANSHU_EE_SCIM_ENABLED=false
-TIANSHU_EE_SCIM_TOKEN=$SCIM_TOKEN
-TIANSHU_EE_AUDIT_ENABLED=false
-TIANSHU_EE_AUDIT_SYSLOG_HOST=
-TIANSHU_EE_AUDIT_WEBHOOK_URL=
+AXIFLUX_EE_ENABLED=$([ "$EE" = "1" ] && echo true || echo false)
+AXIFLUX_EE_SAML_ENABLED=false
+AXIFLUX_EE_SCIM_ENABLED=false
+AXIFLUX_EE_SCIM_TOKEN=$SCIM_TOKEN
+AXIFLUX_EE_AUDIT_ENABLED=false
+AXIFLUX_EE_AUDIT_SYSLOG_HOST=
+AXIFLUX_EE_AUDIT_WEBHOOK_URL=
 # LLM / 向量模型密钥（现场填写，或用 sysConfig 覆盖）
 ARK_API_KEY=
 EMBED_API_KEY=
 EOF
-    chmod 600 "$ENVFILE"; chown tianshu:tianshu "$ENVFILE"
+    chmod 600 "$ENVFILE"; chown axiflux:Axiflux "$ENVFILE"
     echo "$ADMIN_PASSWORD" > "$INSTALL_DIR/conf/initial-admin-password.txt"
-    chmod 600 "$INSTALL_DIR/conf/initial-admin-password.txt"; chown tianshu:tianshu "$INSTALL_DIR/conf/initial-admin-password.txt"
+    chmod 600 "$INSTALL_DIR/conf/initial-admin-password.txt"; chown axiflux:Axiflux "$INSTALL_DIR/conf/initial-admin-password.txt"
   fi
 fi
 
@@ -187,28 +187,28 @@ fi
 
 # ---------- 7. systemd --------------------------------------------------------
 log "7/9 安装 systemd 服务"
-UNIT=/etc/systemd/system/tianshu.service
+UNIT=/etc/systemd/system/axiflux.service
 if [ "$DRY" = "0" ]; then
   cat > "$UNIT" <<EOF
 [Unit]
-Description=Tianshu Agent Platform
+Description=Axiflux Platform
 After=network-online.target docker.service
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=tianshu
-Group=tianshu
+User=Axiflux
+Group=Axiflux
 WorkingDirectory=$INSTALL_DIR
-EnvironmentFile=$INSTALL_DIR/conf/tianshu.env
+EnvironmentFile=$INSTALL_DIR/conf/axiflux.env
 ExecStart=$INSTALL_DIR/runtime/jdk/bin/java -Xms1g -Xmx2g -XX:+UseG1GC -XX:MaxRAMPercentage=75 \\
-  -Dfile.encoding=UTF-8 -jar $INSTALL_DIR/lib/tianshu-app.jar
+  -Dfile.encoding=UTF-8 -jar $INSTALL_DIR/lib/axiflux-app.jar
 SuccessExitStatus=143
 Restart=always
 RestartSec=5
 TimeoutStopSec=60
-StandardOutput=append:$INSTALL_DIR/logs/tianshu.out.log
-StandardError=append:$INSTALL_DIR/logs/tianshu.err.log
+StandardOutput=append:$INSTALL_DIR/logs/axiflux.out.log
+StandardError=append:$INSTALL_DIR/logs/axiflux.err.log
 
 [Install]
 WantedBy=multi-user.target
@@ -218,14 +218,14 @@ run systemctl daemon-reload
 
 # ---------- 8. 启动 ----------------------------------------------------------
 log "8/9 启动服务（首次启动会执行 Flyway 迁移，通常 30~60s）"
-run systemctl enable --now tianshu.service
+run systemctl enable --now axiflux.service
 if [ "$DRY" = "0" ]; then
   for i in $(seq 1 60); do
     C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$PORT/actuator/health/liveness" || true)
     [ "$C" = "200" ] && break
     sleep 3
   done
-  [ "$C" = "200" ] || die "服务 180s 内未就绪，请查看 $INSTALL_DIR/logs/tianshu.err.log"
+  [ "$C" = "200" ] || die "服务 180s 内未就绪，请查看 $INSTALL_DIR/logs/axiflux.err.log"
   log "      服务已就绪"
 fi
 
@@ -234,7 +234,7 @@ if [ "$SKIP_VERIFY" = "0" ] && [ "$DRY" = "0" ] && [ -x "$INSTALL_DIR/scripts/op
   log "9/9 运行交付验收脚本"
   set +e
   "$INSTALL_DIR/scripts/ops/verify-install.sh" --url "http://127.0.0.1:$PORT" \
-     --user tianshu --password "$(cat "$INSTALL_DIR/conf/initial-admin-password.txt" 2>/dev/null)" \
+     --user Axiflux --password "$(cat "$INSTALL_DIR/conf/initial-admin-password.txt" 2>/dev/null)" \
      --json "$INSTALL_DIR/logs/verify-install.json" $([ "$EE" = "1" ] && echo --expect-ee)
   RC=$?
   set -e
@@ -249,14 +249,14 @@ cat <<EOF
  安装完成
 ---------------------------------------------------------------------
  安装目录 : $INSTALL_DIR
- 配置     : $INSTALL_DIR/conf/tianshu.env
- 初始管理员: tianshu / $(cat "$INSTALL_DIR/conf/initial-admin-password.txt" 2>/dev/null || echo '（既有环境，请用原口令）')
+ 配置     : $INSTALL_DIR/conf/axiflux.env
+ 初始管理员: Axiflux / $(cat "$INSTALL_DIR/conf/initial-admin-password.txt" 2>/dev/null || echo '（既有环境，请用原口令）')
  访问地址 : ${PUBLIC_URL:-http://127.0.0.1:$PORT}
- 日志     : $INSTALL_DIR/logs/tianshu.out.log
+ 日志     : $INSTALL_DIR/logs/axiflux.out.log
  版本     : $(basename "$JAR")
  后续步骤 :
-   1) 在 conf/tianshu.env 填入 ARK_API_KEY / EMBED_API_KEY
-   2) systemctl restart tianshu
+   1) 在 conf/axiflux.env 填入 ARK_API_KEY / EMBED_API_KEY
+   2) systemctl restart Axiflux
    3) 首次登录后立即修改管理员口令，并启用 MFA（如已接入 IdP）
    4) 备份：scripts/ops/backup.sh --install-dir $INSTALL_DIR
 =====================================================================

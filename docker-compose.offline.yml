@@ -1,4 +1,4 @@
-# 天枢 Agent 平台 —— 离线（无外网）部署编排
+# AxiFlux Agent 平台 —— 离线（无外网）部署编排
 #
 # 与 docker-compose.prod.yml 的区别：
 #   1. 所有镜像必须事先 `docker load`（本文件禁止拉取远端镜像：pull_policy: never）
@@ -11,46 +11,46 @@
 #        docker load -i images/redis-7-offline.tar
 #        docker load -i images/jdk25-offline.tar        # 若目标机无 JDK
 #   2) 准备配置
-#        cp env/tianshu.env.example env/tianshu.env   # 修改 PG_PASSWORD / AUTH_SECRET 等
+#        cp env/axiflux.env.example env/axiflux.env   # 修改 PG_PASSWORD / AUTH_SECRET 等
 #   3) 启动
-#        docker compose -f docker-compose.offline.yml --env-file env/tianshu.env up -d
+#        docker compose -f docker-compose.offline.yml --env-file env/axiflux.env up -d
 #   4) 验收
-#        ./scripts/ops/verify-install.sh --url http://127.0.0.1:8080 --user tianshu --password '<口令>'
+#        ./scripts/ops/verify-install.sh --url http://127.0.0.1:8080 --user Axiflux --password '<口令>'
 #
 # 注意：本编排仅供隔离网络内的单机部署；多实例/HA 请参考 docs/ha-deployment.md。
 
-name: tianshu-offline
+name: axiflux-offline
 
 services:
 
   postgres:
-    image: ${OFFLINE_PG_IMAGE:-tianshu/postgres-pgvector:16-offline}
+    image: ${OFFLINE_PG_IMAGE:-Axiflux/postgres-pgvector:16-offline}
     pull_policy: never
-    container_name: tianshu-postgres
+    container_name: axiflux-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${PG_DB:-tianshu}
-      POSTGRES_USER: ${PG_USER:-tianshu}
+      POSTGRES_DB: ${PG_DB:-Axiflux}
+      POSTGRES_USER: ${PG_USER:-Axiflux}
       POSTGRES_PASSWORD: ${PG_PASSWORD:?PG_PASSWORD 必须设置（离线部署无默认值）}
       # 向量扩展初始化由镜像内置 initdb 脚本完成；如镜像不含，见 docs/offline-install.md §3
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
-      - tianshu-pg-data:/var/lib/postgresql/data
+      - axiflux-pg-data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-tianshu} -d ${PG_DB:-tianshu}"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-Axiflux} -d ${PG_DB:-Axiflux}"]
       interval: 10s
       timeout: 5s
       retries: 12
-    networks: [tianshu-net]
+    networks: [axiflux-net]
     # 生产环境不把数据库暴露到宿主机；如需运维访问，取消下面注释并限制来源
     # ports:
     #   - "127.0.0.1:5432:5432"
 
   redis:
-    image: ${OFFLINE_REDIS_IMAGE:-tianshu/redis:7-offline}
+    image: ${OFFLINE_REDIS_IMAGE:-Axiflux/redis:7-offline}
     pull_policy: never
-    container_name: tianshu-redis
+    container_name: axiflux-redis
     restart: unless-stopped
     command:
       - redis-server
@@ -65,18 +65,18 @@ services:
       - --maxmemory-policy
       - noeviction
     volumes:
-      - tianshu-redis-data:/data
+      - axiflux-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 12
-    networks: [tianshu-net]
+    networks: [axiflux-net]
 
-  tianshu:
-    image: ${OFFLINE_JDK_IMAGE:-tianshu/jdk:25-offline}
+  axiflux:
+    image: ${OFFLINE_JDK_IMAGE:-Axiflux/jdk:25-offline}
     pull_policy: never
-    container_name: tianshu-app
+    container_name: axiflux-app
     restart: unless-stopped
     depends_on:
       postgres:
@@ -90,13 +90,13 @@ services:
       - -Dfile.encoding=UTF-8
       - -Duser.timezone=Asia/Shanghai
       - -jar
-      - /app/tianshu-app-0.1.0-SNAPSHOT.jar
+      - /app/axiflux-app-0.1.0-SNAPSHOT.jar
       - --spring.profiles.active=prod
     environment:
       SERVER_PORT: "8080"
-      TIANSHU_PUBLIC_URL: ${TIANSHU_PUBLIC_URL:-http://localhost:8080}
-      PG_URL: jdbc:postgresql://postgres:5432/${PG_DB:-tianshu}
-      PG_USER: ${PG_USER:-tianshu}
+      AXIFLUX_PUBLIC_URL: ${AXIFLUX_PUBLIC_URL:-http://localhost:8080}
+      PG_URL: jdbc:postgresql://postgres:5432/${PG_DB:-Axiflux}
+      PG_USER: ${PG_USER:-Axiflux}
       PG_PASSWORD: ${PG_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -108,15 +108,15 @@ services:
       EMBED_API_KEY: ${EMBED_API_KEY:-}
       ARK_API_KEY: ${ARK_API_KEY:-}
       # 企业版（未购买请置 false；EE jar 未包含时保持 false）
-      TIANSHU_EE_ENABLED: ${TIANSHU_EE_ENABLED:-false}
-      TIANSHU_EE_SAML_ENABLED: ${TIANSHU_EE_SAML_ENABLED:-false}
-      TIANSHU_EE_SCIM_ENABLED: ${TIANSHU_EE_SCIM_ENABLED:-false}
-      TIANSHU_EE_AUDIT_ENABLED: ${TIANSHU_EE_AUDIT_ENABLED:-false}
+      AXIFLUX_EE_ENABLED: ${AXIFLUX_EE_ENABLED:-false}
+      AXIFLUX_EE_SAML_ENABLED: ${AXIFLUX_EE_SAML_ENABLED:-false}
+      AXIFLUX_EE_SCIM_ENABLED: ${AXIFLUX_EE_SCIM_ENABLED:-false}
+      AXIFLUX_EE_AUDIT_ENABLED: ${AXIFLUX_EE_AUDIT_ENABLED:-false}
     volumes:
-      - ./tianshu-app-0.1.0-SNAPSHOT.jar:/app/tianshu-app-0.1.0-SNAPSHOT.jar:ro
-      - ./tianshu-ee-core-0.1.0-SNAPSHOT.jar:/app/libs/tianshu-ee-core-0.1.0-SNAPSHOT.jar:ro
-      - tianshu-data:/app/data
-      - tianshu-logs:/app/logs
+      - ./axiflux-app-0.1.0-SNAPSHOT.jar:/app/axiflux-app-0.1.0-SNAPSHOT.jar:ro
+      - ./axiflux-ee-core-0.1.0-SNAPSHOT.jar:/app/libs/axiflux-ee-core-0.1.0-SNAPSHOT.jar:ro
+      - axiflux-data:/app/data
+      - axiflux-logs:/app/logs
     ports:
       - "${SERVER_PORT:-8080}:8080"
     healthcheck:
@@ -125,14 +125,14 @@ services:
       timeout: 6s
       retries: 10
       start_period: 90s
-    networks: [tianshu-net]
+    networks: [axiflux-net]
 
 volumes:
-  tianshu-pg-data:
-  tianshu-redis-data:
-  tianshu-data:
-  tianshu-logs:
+  axiflux-pg-data:
+  axiflux-redis-data:
+  axiflux-data:
+  axiflux-logs:
 
 networks:
-  tianshu-net:
+  axiflux-net:
     driver: bridge

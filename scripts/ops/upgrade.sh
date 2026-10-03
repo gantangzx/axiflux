@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 天枢 一键升级 (Linux) —— 备份 -> 灰度校验 -> 替换 -> Flyway 迁移 -> 探活 -> 失败自动回滚
+# AxiFlux 一键升级 (Linux) —— 备份 -> 灰度校验 -> 替换 -> Flyway 迁移 -> 探活 -> 失败自动回滚
 #
 # 用法:
-#   sudo ./upgrade.sh --package tianshu-offline-1.1.0.tar.gz [--install-dir /opt/tianshu]
+#   sudo ./upgrade.sh --package axiflux-offline-1.1.0.tar.gz [--install-dir /opt/Axiflux]
 #                     [--ee] [--no-backup] [--timeout 300]
 #
 # 前置: 目标版本 jar 内已含全部 Flyway 迁移；升级不做破坏性回退（数据库向前兼容）。
@@ -12,7 +12,7 @@
 # =============================================================================
 set -euo pipefail
 
-INSTALL_DIR=/opt/tianshu
+INSTALL_DIR=/opt/Axiflux
 PACKAGE=""
 EE=0
 DO_BACKUP=1
@@ -36,9 +36,9 @@ done
 [ -f "$PACKAGE" ] || die "包不存在: $PACKAGE"
 [ "$(id -u)" = "0" ] || die "请用 sudo 执行"
 
-PORT=$(grep -E '^SERVER_PORT=' "$INSTALL_DIR/conf/tianshu.env" | cut -d= -f2)
+PORT=$(grep -E '^SERVER_PORT=' "$INSTALL_DIR/conf/axiflux.env" | cut -d= -f2)
 PORT=${PORT:-8080}
-OLD_JAR=$(ls -1 "$INSTALL_DIR/lib"/tianshu-app*.jar | head -1)
+OLD_JAR=$(ls -1 "$INSTALL_DIR/lib"/axiflux-app*.jar | head -1)
 OLD_VER=$(basename "$OLD_JAR")
 
 WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
@@ -47,7 +47,7 @@ tar -xzf "$PACKAGE" -C "$WORK"
 SRC=$(find "$WORK" -maxdepth 1 -mindepth 1 -type d | head -1)
 [ -n "$SRC" ] || die "包结构异常"
 if [ -f "$SRC/SHA256SUMS" ]; then ( cd "$SRC" && sha256sum -c SHA256SUMS --quiet ) || die "新包校验失败"; fi
-NEW_JAR=$(find "$SRC" -maxdepth 2 -name 'tianshu-app-*.jar' | head -1)
+NEW_JAR=$(find "$SRC" -maxdepth 2 -name 'axiflux-app-*.jar' | head -1)
 [ -n "$NEW_JAR" ] || die "包内无应用 jar"
 log "      当前版本: $OLD_VER -> 新版本: $(basename "$NEW_JAR")"
 
@@ -59,21 +59,21 @@ else
 fi
 
 log "2/7 停止服务"
-systemctl stop tianshu.service || true
+systemctl stop axiflux.service || true
 
 log "3/7 替换程序（旧 jar 保留为 .prev）"
 cp -f "$OLD_JAR" "$OLD_JAR.prev"
 mkdir -p "$INSTALL_DIR/lib.prev-$(date +%Y%m%d%H%M%S)"
-cp -f "$NEW_JAR" "$INSTALL_DIR/lib/tianshu-app.jar.new"
+cp -f "$NEW_JAR" "$INSTALL_DIR/lib/axiflux-app.jar.new"
 if [ "$EE" = "1" ]; then
-  for j in "$SRC"/tianshu-ee-*.jar; do [ -e "$j" ] && cp -f "$j" "$INSTALL_DIR/lib/" || true; done
+  for j in "$SRC"/axiflux-ee-*.jar; do [ -e "$j" ] && cp -f "$j" "$INSTALL_DIR/lib/" || true; done
 fi
-mv -f "$INSTALL_DIR/lib/tianshu-app.jar.new" "$INSTALL_DIR/lib/$(basename "$NEW_JAR")"
+mv -f "$INSTALL_DIR/lib/axiflux-app.jar.new" "$INSTALL_DIR/lib/$(basename "$NEW_JAR")"
 rm -f "$INSTALL_DIR/lib/$OLD_VER"
-chown tianshu:tianshu "$INSTALL_DIR/lib"/*.jar
+chown axiflux:Axiflux "$INSTALL_DIR/lib"/*.jar
 
 log "4/7 启动并等待 Flyway 迁移完成"
-systemctl start tianshu.service
+systemctl start axiflux.service
 OK=0
 for i in $(seq 1 $((TIMEOUT/3))); do
   C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$PORT/actuator/health/liveness" || true)
@@ -83,20 +83,20 @@ done
 
 if [ "$OK" != "1" ]; then
   log "5/7 探活失败，执行回滚"
-  systemctl stop tianshu.service || true
+  systemctl stop axiflux.service || true
   cp -f "$OLD_JAR.prev" "$OLD_JAR"
-  chown tianshu:tianshu "$OLD_JAR"
-  systemctl start tianshu.service
+  chown axiflux:Axiflux "$OLD_JAR"
+  systemctl start axiflux.service
   sleep 15
   C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$PORT/actuator/health/liveness" || true)
-  [ "$C" = "200" ] && log "回滚成功（已恢复 $OLD_VER）" || log "回滚后仍未就绪，请人工介入：$INSTALL_DIR/logs/tianshu.err.log"
+  [ "$C" = "200" ] && log "回滚成功（已恢复 $OLD_VER）" || log "回滚后仍未就绪，请人工介入：$INSTALL_DIR/logs/axiflux.err.log"
   die "升级失败并已回滚；如需整体回退数据库请用 restore.sh"
 fi
 
 log "5/7 迁移与健康检查通过"
 if command -v psql >/dev/null 2>&1; then
   # shellcheck disable=SC1090
-  . "$INSTALL_DIR/conf/tianshu.env"
+  . "$INSTALL_DIR/conf/axiflux.env"
   U=${PG_URL#jdbc:postgresql://}; H=${U%%/*}; D=${U##*/}; HOST=${H%%:*}; P=${H##*:}
   V=$(PGPASSWORD="$PG_PASSWORD" psql -h "$HOST" -p "${P:-5432}" -U "$PG_USER" -d "$D" -tAc \
     'select max(version) from flyway_schema_history where success' 2>/dev/null | tr -d ' \r')
@@ -117,4 +117,4 @@ log "7/7 写入版本记录"
 } >> "$INSTALL_DIR/logs/upgrade-history.txt"
 
 log "升级完成: $OLD_VER -> $(basename "$NEW_JAR")"
-log "回滚方式: cp $OLD_JAR.prev $OLD_JAR && systemctl restart tianshu"
+log "回滚方式: cp $OLD_JAR.prev $OLD_JAR && systemctl restart Axiflux"

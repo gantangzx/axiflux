@@ -1,0 +1,14 @@
+com.gantang.axiflux.spring.config.FlywayMigrationConfiguration
+com.gantang.axiflux.spring.config.AxifluxJpaAutoConfiguration
+com.gantang.axiflux.spring.config.AxifluxAutoConfiguration
+com.gantang.axiflux.spring.config.RedisConfig
+com.gantang.axiflux.spring.config.SchedulerConfig
+com.gantang.axiflux.spring.config.WebFluxConfig
+com.gantang.axiflux.spring.config.BuiltInToolsConfiguration
+com.gantang.axiflux.spring.config.AxifluxWebConfiguration
+com.gantang.axiflux.spring.config.SkillConfiguration
+com.gantang.axiflux.spring.config.WorkflowConfiguration
+com.gantang.axiflux.spring.config.TaskSchedulerConfiguration
+com.gantang.axiflux.spring.config.ToolProvidersConfiguration
+com.gantang.axiflux.spring.config.OpenApiConfig
+com.gantang.axiflux.spring.auth.SecurityConfig

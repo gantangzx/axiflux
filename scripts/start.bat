@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 rem ============================================================================
-rem Tianshu unified launcher (Windows).
+rem Axiflux unified launcher (Windows).
 rem
 rem Usage:
 rem   scripts\start.bat [local^|dev^|test^|prod] [-f]
@@ -55,7 +55,7 @@ rem Java 25 compiled jar; fall back to the bundled JDK when it is not usable.
 set "DEFAULT_JAVA_HOME=D:\software\Java\jdk-25\jdk-25.0.2"
 if not defined JAVA_HOME set "JAVA_HOME=%DEFAULT_JAVA_HOME%"
 if not exist "%JAVA_HOME%\bin\java.exe" set "JAVA_HOME=%DEFAULT_JAVA_HOME%"
-set "APP_JAR=tianshu-app\target\tianshu-app-0.1.0-SNAPSHOT.jar"
+set "APP_JAR=axiflux-app\target\axiflux-app-0.1.0-SNAPSHOT.jar"
 if not exist "%APP_JAR%" (
   echo [ERROR] jar not found: %APP_JAR%
   echo Build first:  mvn clean install -DskipTests
@@ -71,7 +71,7 @@ if "%FOREGROUND%"=="1" (
   echo starting '%PROFILE%' in foreground, logs -^> console
   "%JAVA_HOME%\bin\java.exe" -jar "%APP_JAR%"
 ) else (
-  start "tianshu-%PROFILE%" /min cmd /c ""%JAVA_HOME%\bin\java.exe" -jar "%APP_JAR%" > %LOG% 2>&1"
+  start "axiflux-%PROFILE%" /min cmd /c ""%JAVA_HOME%\bin\java.exe" -jar "%APP_JAR%" > %LOG% 2>&1"
   echo launched profile '%PROFILE%' detached; logs -^> %LOG%
 )
 

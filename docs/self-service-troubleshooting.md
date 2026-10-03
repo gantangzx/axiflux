@@ -1,4 +1,4 @@
-# 天枢 自助排障手册
+# AxiFlux 自助排障手册
 
 > 面向**非框架作者**：你不需要懂 Spring/Reactor，照着「定位命令 → 修复步骤」做即可。
 > 问题按安装自测中**真实出现的频率**从高到低排序；先从第 1 条开始。
@@ -21,14 +21,14 @@ curl -s http://127.0.0.1:8080/actuator/health
 
 # 3) 看日志最后 100 行（按你的部署方式选一个路径）
 tail -n 100 logs/boot-local.log          # start.bat 启动
-#   或 systemd：journalctl -u tianshu -n 100 --no-pager
+#   或 systemd：journalctl -u Axiflux -n 100 --no-pager
 ```
 
 - 返回 `200` 且 `status:"UP"`：后端正常，问题多在浏览器/网络，跳到 **第 5 条**。
 - 返回 `503/DOWN`：看 `components` 里是谁 DOWN，跳到对应条目（db→第 2，redis→第 3）。
 - 连不上（超时/拒绝）：进程没起来或端口不对，看 **第 1 条**。
 
-> 排障时请**保留现场**：安装自测加 `--keep`，不要急着删 `/tmp/tianshu-*` 目录。
+> 排障时请**保留现场**：安装自测加 `--keep`，不要急着删 `/tmp/axiflux-*` 目录。
 
 ---
 
@@ -52,10 +52,10 @@ tail -n 80 logs/boot-local.log        # 找第一个 ERROR / Caused by / APplica
 **自助修复**
 
 ```bash
-# ① 查端口占用并停掉旧的“天枢”进程（注意别误杀 IDEA 的 java 进程）
+# ① 查端口占用并停掉旧的“AxiFlux”进程（注意别误杀 IDEA 的 java 进程）
 #    Windows PowerShell：
 Get-NetTCPConnection -LocalPort 8080 -State Listen
-#    确认命令行里含 tianshu-app 再杀：
+#    确认命令行里含 axiflux-app 再杀：
 #    taskkill /PID <pid> /F
 
 # ② 确认 Java 是 25
@@ -78,7 +78,7 @@ scripts\start.bat local
 ## 2. 连不上 PostgreSQL
 
 **现象**：健康检查 `components.db` 为 `DOWN`；日志出现 `Connection refused` /
-`password authentication failed` / `database "tianshu" does not exist` /
+`password authentication failed` / `database "Axiflux" does not exist` /
 `could not translate host name`。
 
 **一条定位命令**
@@ -91,7 +91,7 @@ pg_isready -h 127.0.0.1 -p 5432
 **常见原因**
 
 1. PG 没启动，或应用和数据库不在同一主机/端口。
-2. 库 `tianshu` 没建，或没装 `pgvector` 扩展。
+2. 库 `Axiflux` 没建，或没装 `pgvector` 扩展。
 3. 用户名/口令/库名不对；连接串写错。
 4. 网络策略/防火墙挡了 5432。
 
@@ -102,15 +102,15 @@ pg_isready -h 127.0.0.1 -p 5432
 sudo systemctl start postgresql
 
 # ② 建库 + 装向量扩展（只需一次）
-createdb tianshu
-psql -d tianshu -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+createdb Axiflux
+psql -d Axiflux -c 'CREATE EXTENSION IF NOT EXISTS vector;'
 
 # ③ 核对应用配置（环境变量优先）
 #    PG_URL / PG_USER / PG_PASSWORD
-#    例：jdbc:postgresql://127.0.0.1:5432/tianshu
+#    例：jdbc:postgresql://127.0.0.1:5432/Axiflux
 
 # ④ 验证能登录
-psql "host=127.0.0.1 port=5432 dbname=tianshu user=tianshu" -c 'select 1;'
+psql "host=127.0.0.1 port=5432 dbname=Axiflux user=Axiflux" -c 'select 1;'
 ```
 
 > 表结构由 Flyway 在启动时自动迁移（V1–V20+），无需手动建表；
@@ -214,7 +214,7 @@ curl -s http://127.0.0.1:8080/ | grep -o '/assets/[^"]*\.js' | head
 
 ```bash
 # ① 先停服务，再在前端工程里构建（Windows 侧 node/npm）
-cd tianshu-app/ui
+cd axiflux-app/ui
 npx tsc --noEmit          # 类型检查
 npm run build             # 产物直接输出到 ../src/main/resources/static
 
@@ -232,16 +232,16 @@ mvn clean install -DskipTests
 ## 6. 向量维度不匹配（记忆检索异常）
 
 **现象**：日志出现 `Embedding dimension mismatch` /
-`memory_items.embedding is vector(N) but tianshu.vector.dimension=M`；记忆写入被停用、
+`memory_items.embedding is vector(N) but axiflux.vector.dimension=M`；记忆写入被停用、
 检索退化为关键词匹配。
 
 **一条定位命令**
 
 ```bash
 # 看当前列维度（N）。atttypmod = N+4；-1 表示无维度
-psql -d tianshu -c "SELECT atttypmod-4 AS dims FROM pg_attribute
+psql -d Axiflux -c "SELECT atttypmod-4 AS dims FROM pg_attribute
   WHERE attrelid='memory_items'::regclass AND attname='embedding';"
-# 再对照配置 tianshu.vector.dimension（默认 1536；方舟多模态为 2048）
+# 再对照配置 axiflux.vector.dimension（默认 1536；方舟多模态为 2048）
 ```
 
 **常见原因**
@@ -252,9 +252,9 @@ psql -d tianshu -c "SELECT atttypmod-4 AS dims FROM pg_attribute
 
 ```bash
 # ① 确认新模型实际返回的维度，并让配置与之对齐：
-#    tianshu.vector.dimension
+#    axiflux.vector.dimension
 # ② 维度变更需要重建表/列，例如：
-psql -d tianshu -c 'DROP TABLE IF EXISTS memory_items;'
+psql -d Axiflux -c 'DROP TABLE IF EXISTS memory_items;'
 #    然后重启应用，让启动 DDL 按新维度重建（迁移会自动建表）。
 # ③ 若只是临时排障，系统已自动降级为关键词检索，不影响对话主流程。
 ```
