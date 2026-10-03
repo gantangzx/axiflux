@@ -65,7 +65,7 @@ public class AgentWebSocketHandler implements WebSocketHandler {
 
     @Override
     public @NonNull List<String> getSubProtocols() {
-        return List.of("Axiflux");
+        return List.of("axiflux");
     }
 
     @Override

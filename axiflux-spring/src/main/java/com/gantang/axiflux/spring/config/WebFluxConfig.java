@@ -32,11 +32,11 @@ import java.util.Map;
 /**
  * Reactive WebFlux + WebSocket configuration.
  *
- * <p>Registers the {@link AgentWebSocketHandler} at {@code /Axiflux/ws} with all
+ * <p>Registers the {@link AgentWebSocketHandler} at {@code /axiflux/ws} with all
  * its required dependencies injected. The handler is only created when a real
  * {@link Agent} bean is available, so smoke tests without a full Agent still boot.
  *
- * <p>Endpoint: {@code ws://host:port/Axiflux/ws} (subprotocol {@code Axiflux}).
+ * <p>Endpoint: {@code ws://host:port/axiflux/ws} (subprotocol {@code axiflux}).
  *
  * <p>Deliberately NOT annotated with {@code @EnableWebFlux}: that annotation takes
  * over WebFlux configuration completely and disables Spring Boot's
@@ -84,7 +84,7 @@ public class WebFluxConfig implements WebFluxConfigurer {
     @ConditionalOnBean(AgentWebSocketHandler.class)
     public HandlerMapping webSocketMapping(AgentWebSocketHandler handler) {
         Map<String, WebSocketHandler> map = new HashMap<>();
-        map.put("/Axiflux/ws", handler);
+        map.put("/axiflux/ws", handler);
 
         SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
         mapping.setOrder(-1); // before annotated controllers

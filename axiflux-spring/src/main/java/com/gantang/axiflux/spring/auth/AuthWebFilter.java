@@ -103,7 +103,7 @@ public class AuthWebFilter implements WebFilter, Ordered {
         // (all of /api/**), the MCP endpoint and the WebSocket upgrade. Static
         // assets and probes (permitted at the security layer) pass through untouched.
         boolean identitySurface = path != null && (path.startsWith(API_ROOT)
-            || path.startsWith("/Axiflux/ws") || path.equals("/mcp"));
+            || path.startsWith("/axiflux/ws") || path.equals("/mcp"));
         if (!identitySurface) {
             return chain.filter(exchange);
         }

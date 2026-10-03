@@ -40,7 +40,7 @@ import java.util.List;
  *       or an external IdP JWKS when {@code spring.security.oauth2.resourceserver
  *       .jwt.jwk-set-uri}/{@code issuer-uri} is configured). Public paths are
  *       limited to the token-issuance edge, the console static assets and
- *       liveness/readiness probes — this means {@code /mcp}, {@code /Axiflux/ws}
+ *       liveness/readiness probes — this means {@code /mcp}, {@code /axiflux/ws}
  *       and {@code /actuator/**} (beyond health/info) are authenticated too.
  *       The {@code scopes} claim is mapped to {@code SCOPE_*} authorities.</li>
  *   <li><b>auth disabled</b> (default, dev/single-user): everything is permitted;
@@ -117,7 +117,7 @@ public class SecurityConfig {
             .logout(ServerHttpSecurity.LogoutSpec::disable)
             .authorizeExchange(ex -> ex
                 .pathMatchers(PUBLIC_PATHS).permitAll()
-                // everything else authenticated: /api/v1/**, /mcp, /Axiflux/ws,
+                // everything else authenticated: /api/v1/**, /mcp, /axiflux/ws,
                 // /actuator (beyond health/info), any future admin path.
                 .anyExchange().authenticated())
             .oauth2ResourceServer(rs -> rs.jwt(jwt -> jwt

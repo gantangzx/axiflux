@@ -198,7 +198,7 @@ class AgentWebSocketHandlerTest {
 
     @Test
     void interrupt_callsAgentInterrupt() throws Exception {
-        // AuthWebFilter always injects an identity on /Axiflux/ws, so the owner
+        // AuthWebFilter always injects an identity on /axiflux/ws, so the owner
         // interrupting their own session arrives with H_USER set to that owner.
         WebSocketSession session = mockSession("ws-intr", "u1");
         existingSession("sess-intr", "u1");
@@ -267,6 +267,6 @@ class AgentWebSocketHandlerTest {
 
     @Test
     void subProtocols_isAxiflux() {
-        assertEquals(List.of("Axiflux"), handler.getSubProtocols());
+        assertEquals(List.of("axiflux"), handler.getSubProtocols());
     }
 }

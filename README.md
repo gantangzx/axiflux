@@ -1,16 +1,16 @@
-# AxiFlux Axiflux
+# AxiFlux
 
 **响应式 AI Agent 框架 Java 实现** — 模块化、可扩展、安全优先。
 
-> AxiFlux：北斗第一星，众星之枢 —— 智能体编排中枢。
-> 项目代号 / Maven artifactId：`axiflux-agent` / `axiflux-*`
+> 平台名 **AxiFlux**：智能体编排中枢；核心引擎代号 **Reaxon**。
+> Maven groupId / artifactId：`com.gantang.axiflux` / `axiflux-*`（引擎模块 `reaxon-*`）。
 
 [![Java 25](https://img.shields.io/badge/Java-25-blue.svg)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot 4.1](https://img.shields.io/badge/Spring%20Boot-4.1-green.svg)](https://spring.io/projects/spring-boot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Discussions](https://img.shields.io/badge/chat-Discussions-5865F2.svg)](https://github.com/gantangzx/axiflux-agent/discussions)
+[![GitHub Discussions](https://img.shields.io/badge/chat-Discussions-5865F2.svg)](https://github.com/gantangzx/axiflux/discussions)
 
-**使用问题**：请到 [GitHub Discussions](https://github.com/gantangzx/axiflux-agent/discussions) 发起讨论；缺陷请提 [Issues](https://github.com/gantangzx/axiflux-agent/issues)。
+**使用问题**：请到 [GitHub Discussions](https://github.com/gantangzx/axiflux/discussions) 发起讨论；缺陷请提 [Issues](https://github.com/gantangzx/axiflux/issues)。
 
 ---
 
@@ -31,12 +31,12 @@
 ## 📦 模块结构
 
 ```
-axiflux-agent/
+axiflux/
 ├── reaxon-core/      # 核心引擎（零 Spring 依赖，契约 api + 默认实现 impl）
 ├── axiflux-storage/   # JPA 实体 + Repository + Flyway 迁移（PostgreSQL/Redis）
-├── axiflux-registry/  # 工具注册中心（独立服务）
-├── axiflux-spring/    # Spring Boot 装配：安全、控制器、Provider、计费
-├── axiflux-app/       # 可启动单体（启动类 + 托管前端 dist）
+├── axiflux-registry/  # 技能注册中心（独立服务，端口 8090）
+├── axiflux-spring/    # Spring Boot 装配：安全、控制器、Provider
+├── axiflux-app/       # 可启动单体（启动类 + 托管控制台前端）
 └── reaxon-eval/      # 评测（yaml 用例集）
 ```
 
@@ -53,20 +53,27 @@ axiflux-agent/
 <dependency>
     <groupId>com.gantang.axiflux</groupId>
     <artifactId>axiflux-spring</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
 ### 2. 配置 application.yml
 
 ```yaml
+# 数据库（可选；不配置时回退进程内内存会话，开箱即用）
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/axiflux
+    username: postgres
+    password: ${PG_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
 axiflux:
   # LLM 配置
   llm:
     routing:
       strategy: cost_optimized          # capability | cost_optimized
       default-provider: openai
-      default-model: gpt-4o-mini
       costs:
         openai:
           input-per-1k: 0.00015
@@ -74,18 +81,18 @@ axiflux:
         deepseek:
           input-per-1k: 0.0001
           output-per-1k: 0.0002
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      base-url: https://api.openai.com/v1
+      model: gpt-4o-mini
 
-  # 向量存储（推荐 PGVector）
+  # 向量存储（可选，默认 none；推荐 PGVector）
   vector:
     provider: pgvector
+    dimension: 1536
+    metric: cosine
     embed-url: https://api.openai.com/v1/embeddings
     embed-api-key: ${OPENAI_API_KEY}
-
-  # 数据库
-  storage:
-    pg-url: jdbc:postgresql://localhost:5432/Axiflux
-    pg-user: postgres
-    pg-password: ${DB_PASSWORD}
 
   # 安全（生产环境启用）
   auth:
@@ -104,7 +111,6 @@ axiflux:
 
 ```java
 @SpringBootApplication
-@EnableConfigurationProperties(AxifluxProperties.class)
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -255,7 +261,7 @@ public Tool myCustomTool() {
 ### WebSocket
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/Axiflux/ws', 'Axiflux');
+const ws = new WebSocket('ws://localhost:8080/axiflux/ws', 'axiflux');
 ws.send(JSON.stringify({
     type: 'chat',
     sessionId: 'session-123',
@@ -382,5 +388,5 @@ MIT License — 详见 [LICENSE](LICENSE)
 
 ---
 
-**文档版本**：2026-09-27  
+**文档版本**：2026-10-03  
 **项目状态**：v0.1.0-SNAPSHOT，开源社区版（框架 / SDK + 单机控制台）
