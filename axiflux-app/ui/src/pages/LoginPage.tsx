@@ -135,7 +135,8 @@ function RegisterTab(): ReactNode {
   const onFinish = async (values: RegisterForm) => {
     setLoading(true)
     try {
-      const res = await register(values.username.trim(), values.email.trim(), values.password)
+      const email = values.email ? values.email.trim() : ''
+      const res = await register(values.username.trim(), email, values.password)
       message.success('注册成功，已为你开通工作空间'
         + (res.organization?.trialEndsAt ? '与 14 天免费试用' : ''))
       await login(values.username.trim(), values.password)
